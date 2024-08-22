@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+[project]
+name = "sgeop"
+dynamic = ["version"]
+authors = [
+   { name = "Martin Fleischmann", email = "martin@martinfleischmann.net" },
+   { name = "Anastassia Vybornova", email = "anvy@itu.dk" },
+   { name = "James D. Gaboardi", email = "jgaboardi@gmail.com" },
+]
+
+license = { text = "BSD 3-Clause" }
+description = "Street geometry processing toolkit"
+keywords = [""]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+requires-python = ">=3.10"
+dependencies = [
+    'geopandas',
+    'momepy',
+    'numpy',
+    'pandas',
+    'shapely',
+    'esda',
+    'libpysal',
+    'scipy',
+    'networkx',
+]
+
+
+[project.urls]
+Home = "https://github.com/uscuni/"
+Repository = "https://github.com/uscuni/sgeop"
+
+[project.optional-dependencies]
+tests = [
+    "codecov",
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+]
+
+
+[tool.setuptools.packages.find]
+include = ["sgeop", "sgeop.*"]
+
+[tool.ruff]
+line-length = 88
+extend-include = ["*.ipynb"]
+lint.select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
+
+[tool.ruff.lint.per-file-ignores]
+ "*__init__.py" = [
+     "F401",  # imported but unused
+     "F403",  # star import; unable to detect undefined names
+ ]
+
+[tool.coverage.run]
+source = ["./sgeop"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if self.debug:",
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "except ModuleNotFoundError:",
+    "except ImportError",
+]
+ignore_errors = true
+omit = ["sgeop/tests/*"]
