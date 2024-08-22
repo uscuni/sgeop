@@ -1,3 +1,6 @@
+import contextlib
+from importlib.metadata import PackageNotFoundError, version
+
 from . import simplify
 from .artifacts import get_artifacts
 from .nodes import (
@@ -8,3 +11,6 @@ from .nodes import (
     split,
 )
 from .simplify import simplify_loop, simplify_network
+
+with contextlib.suppress(PackageNotFoundError):
+    __version__ = version("sgeop")
