@@ -440,6 +440,7 @@ def simplify_network(
     limit_distance=2,
     simplification_factor=2,
     consolidation_tolerance=10,
+    artifact_threshold=None,
     artifact_threshold_fallback=None,
     area_threshold_blocks=1e5,
     isoareal_threshold_blocks=0.5,
@@ -457,6 +458,7 @@ def simplify_network(
     # Identify artifacts
     artifacts, threshold = get_artifacts(
         roads,
+        threshold=artifact_threshold,
         threshold_fallback=artifact_threshold_fallback,
         area_threshold_blocks=area_threshold_blocks,
         isoareal_threshold_blocks=isoareal_threshold_blocks,
