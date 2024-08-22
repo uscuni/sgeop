@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def get_artifacts(
     roads,
     threshold=None,
+    threshold_fallback=None,
     area_threshold_blocks=1e5,
     isoareal_threshold_blocks=0.5,
     area_threshold_circles=5e4,
@@ -45,6 +46,13 @@ def get_artifacts(
     polygons["is_artifact"] = False
     # unless the fai is below the threshold,
     if threshold is None:
+        if not fas.threshold and threshold_fallback:
+            threshold = threshold_fallback
+        elif not fas.threshold and not threshold_fallback:
+            raise ValueError(
+                "No threshold for artifact detection found. Pass explicit "
+                "`threshold` or `threshold_fallback` to provide the value directly."
+            )
         threshold = fas.threshold
     polygons.loc[polygons.face_artifact_index < threshold, "is_artifact"] = True
 
@@ -1126,6 +1134,3 @@ def is_dangle(edgelines):
     ).sum(axis=1)
 
     return (first_sum == 1) | (last_sum == 1)
-
-
-
