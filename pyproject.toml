@@ -26,15 +26,15 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "esda",
-    "geopandas",
+    "esda>=2.5.1",
+    "geopandas>=0.13.0",
     "libpysal",
-    "momepy",
-    "networkx",
+    "momepy>=0.8.1",
+    "networkx>=2.8",
     "numpy",
-    "pandas",
+    "pandas>=1.5.1",
     "scipy",
-    "shapely",
+    "shapely>=2",
 ]
 
 [project.urls]
@@ -50,7 +50,6 @@ tests = [
     "pytest-cov",
     "pytest-xdist",
 ]
-
 
 [tool.setuptools.packages.find]
 include = ["sgeop", "sgeop.*"]

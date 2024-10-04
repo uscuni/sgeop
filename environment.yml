@@ -3,22 +3,17 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
-  - esda
-  - geopandas
-  - git
+  - esda>=2.5.1
+  - geopandas>=0.13.0
   - libpysal
-  - momepy
-  - networkx
+  - momepy>=0.8.1
+  - networkx>=2.8
   - numpy
-  - pandas
-  - pip
+  - pandas>=1.5.1
   - scipy
-  - shapely
+  - shapely>=2
   # testing
   - pre-commit
   - pytest
   - pytest-cov
   - pytest-xdist
-  - pip:
-    # from bleeding edge functionality
-    - git+https://github.com/pysal/momepy.git
