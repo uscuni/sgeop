@@ -1,0 +1,26 @@
+name: py311_sgeop-latest
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - esda
+  - geopandas
+  - git
+  - libpysal
+  - momepy
+  - networkx
+  - numpy
+  - osmnx
+  - pandas
+  - pip
+  - pyarrow
+  - pyogrio
+  - scipy
+  - shapely
+  # testing
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - pip:
+    # from bleeding edge functionality
+    - git+https://github.com/pysal/momepy.git

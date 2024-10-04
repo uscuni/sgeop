@@ -26,14 +26,15 @@
          environment-file: [
             ci/py310_sgeop-oldest.yaml,
             ci/py311_sgeop-latest.yaml,
+            ci/py312_sgeop-latest.yaml,
             ci/py312_sgeop-dev.yaml,
          ]
          include:
-           - environment-file: ci/py311_sgeop-latest.yaml
+           - environment-file: ci/py312_sgeop-latest.yaml
              os: macos-13 # Intel
-           - environment-file: ci/py311_sgeop-latest.yaml
+           - environment-file: ci/py312_sgeop-latest.yaml
              os: macos-14 # Apple Silicon
-           - environment-file: ci/py311_sgeop-latest.yaml
+           - environment-file: ci/py312_sgeop-latest.yaml
              os: windows-latest
        fail-fast: false
 
