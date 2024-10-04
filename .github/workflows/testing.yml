@@ -54,11 +54,6 @@
            environment-file: ${{ matrix.environment-file }}
            micromamba-version: "latest"
 
-       # - must be editable install for current tests to pass
-       # - due to data & pathing; probably need to:
-       #    1. rethink current 'convenience' funcs;
-       #    2. move `data/` into `core/data/`
-       #    3. something else
        - name: install package
          run: "pip install -e . --no-deps"
 

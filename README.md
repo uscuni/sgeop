@@ -28,4 +28,4 @@ This package developed & and maintained by:
 
 ---------------------------------------
 
-Copyright (c) 2024-, SGeoP Developers
+Copyright (c) 2024-, sgeop Developers
