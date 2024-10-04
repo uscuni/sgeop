@@ -14,6 +14,11 @@ dependencies:
   - pip
   - scipy
   - shapely
+  # testing
+  - pre-commit
+  - pytest
+  - pytest-cov
+  - pytest-xdist
   - pip:
     # from bleeding edge functionality
     - git+https://github.com/pysal/momepy.git

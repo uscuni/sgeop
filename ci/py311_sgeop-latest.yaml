@@ -18,6 +18,7 @@ dependencies:
   - scipy
   - shapely
   # testing
+  - pre-commit
   - pytest
   - pytest-cov
   - pytest-xdist

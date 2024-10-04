@@ -45,6 +45,7 @@ Repository = "https://github.com/uscuni/sgeop"
 tests = [
     "codecov",
     "coverage",
+    "pre-commit",
     "pytest",
     "pytest-cov",
     "pytest-xdist",

@@ -7,6 +7,7 @@ dependencies:
   - git
   - pip
   # testing
+  - pre-commit
   - pytest
   - pytest-cov
   - pytest-xdist
