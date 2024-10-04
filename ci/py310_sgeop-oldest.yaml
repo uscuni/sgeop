@@ -17,6 +17,10 @@ dependencies:
   - pyogrio
   - scipy
   - shapely
+  # testing
+  - pytest
+  - pytest-cov
+  - pytest-xdist
   - pip:
     # from bleeding edge functionality
     - git+https://github.com/pysal/momepy.git

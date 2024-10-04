@@ -6,6 +6,10 @@ dependencies:
   - geos # for shapely
   - git
   - pip
+  # testing
+  - pytest
+  - pytest-cov
+  - pytest-xdist
   - pip:
     # dev versions of packages
     - --pre \

@@ -70,7 +70,7 @@
        - name: run tests
          run: |
            pytest \
-           core/ \
+           sgeop/ \
            --verbose \
            -r a \
            --numprocesses logical \
