@@ -1,0 +1,22 @@
+name: py310_sgeop-oldest
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - esda=2.5.1
+  - fiona=1.9
+  - geopandas=0.13.0
+  - git
+  - libpysal
+  - momepy
+  - networkx
+  - numpy
+  - pandas
+  - pip
+  - pyarrow
+  - pyogrio
+  - scipy
+  - shapely
+  - pip:
+    # from bleeding edge functionality
+    - git+https://github.com/pysal/momepy.git
