@@ -26,17 +26,16 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    'geopandas',
-    'momepy',
-    'numpy',
-    'pandas',
-    'shapely',
-    'esda',
-    'libpysal',
-    'scipy',
-    'networkx',
+    "esda",
+    "geopandas",
+    "libpysal",
+    "momepy",
+    "networkx",
+    "numpy",
+    "pandas",
+    "scipy",
+    "shapely",
 ]
-
 
 [project.urls]
 Home = "https://github.com/uscuni/"
