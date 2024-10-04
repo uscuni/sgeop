@@ -1,0 +1,19 @@
+name: sgeop
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - esda
+  - geopandas
+  - git
+  - libpysal
+  - momepy
+  - networkx
+  - numpy
+  - pandas
+  - pip
+  - scipy
+  - shapely
+  - pip:
+    # from bleeding edge functionality
+    - git+https://github.com/pysal/momepy.git
