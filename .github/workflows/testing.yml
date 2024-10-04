@@ -78,8 +78,7 @@
            --cov core \
            --cov-append \
            --cov-report term-missing \
-           --cov-report xml . \
-           --env_type ${{ matrix.environment-file }}
+           --cov-report xml .
        
        - name: codecov
          uses: codecov/codecov-action@v4
