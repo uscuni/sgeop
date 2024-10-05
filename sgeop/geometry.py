@@ -12,8 +12,6 @@ from scipy import spatial
 
 from .nodes import consolidate_nodes
 
-__all__ = ["_is_within", "voronoi_skeleton"]
-
 
 def _is_within(
     line: np.ndarray[shapely.Geometry], poly: shapely.Polygon, rtol: float = 1e-4
@@ -26,7 +24,7 @@ def _is_within(
         Input line to check relationship.
     poly : shapely.Polygon
         Input polygon to check relationship.
-    rtol : float (default -1e4)
+    rtol : float = -1e4
         The set relative tolerance.
 
     Returns
@@ -35,11 +33,6 @@ def _is_within(
         ``True`` if ``line`` is either entirely within ``poly`` or if
         ``line`` is within `poly`` based on a relaxed ``rtol`` relative tolerance.
     """
-    # if line.within(poly):
-    #     return True
-
-    # intersection = line.intersection(poly)
-    # return abs(intersection.length - line.length) <= rtol
 
     within = shapely.within(line, poly)
     if within.all():
@@ -49,8 +42,24 @@ def _is_within(
     return np.abs(shapely.length(intersection) - shapely.length(line)) <= rtol
 
 
-def angle_between_two_lines(line1, line2):
-    # based on momepy.coins but adapted to shapely lines
+def angle_between_two_lines(
+    line1: shapely.LineString, line2: shapely.LineString
+) -> float:
+    """Return the angle between 2 two lines (assuming they share a vertex).
+    Based on ``momepy.coins`` but adapted to shapely lines.
+    """
+
+    return_bad = 0.0
+
+    lines_distinct = line1 != line2
+    if not lines_distinct:
+        warnings.warn(
+            f"Input lines are identical - must be distinct. Returning {return_bad}.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return return_bad
+
     # extract points
     a, b, c, d = shapely.get_coordinates([line1, line2]).tolist()
     a, b, c, d = tuple(a), tuple(b), tuple(c), tuple(d)
@@ -58,6 +67,15 @@ def angle_between_two_lines(line1, line2):
     # assertion: we expect exactly 2 of the 4 points to be identical
     # (lines touch in this point)
     points = collections.Counter([a, b, c, d])
+
+    lines_share_vertex = max(points.values()) > 1
+    if not lines_share_vertex:
+        warnings.warn(
+            f"Input lines do not share a vertex. Returning {return_bad}.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return return_bad
 
     # points where line touch = "origin" (for vector-based angle calculation)
     origin = [k for k, v in points.items() if v == 2][0]
@@ -91,7 +109,6 @@ def voronoi_skeleton(
     """
     Returns average geometry.
 
-
     Parameters
     ----------
     lines : array_like
@@ -108,7 +125,10 @@ def voronoi_skeleton(
         tolerance passed to node consolidation within the resulting skeleton. If None,
         no consolidation happens
 
-    Returns array of averaged geometries
+    Returns
+    -------
+    numpy.ndarray
+        Array of averaged geometries.
     """
     if buffer is None:
         buffer = max_segment_length * 20

@@ -1,3 +1,4 @@
+import pytest
 import shapely
 
 import sgeop
@@ -70,3 +71,48 @@ class TestIsWithin:
         observed = sgeop.geometry._is_within(line, self.polygon)
 
         assert known == observed
+
+
+class TestAngelBetween2Lines:
+    def setup_method(self):
+        self.line1 = shapely.LineString(((0, 0), (1, 0)))
+        self.line2 = shapely.LineString(((1, 0), (1, 1)))
+        self.line3 = shapely.LineString(((0, 0), (0, 1)))
+        self.line4 = shapely.LineString(((0, 1), (1, 1)))
+
+    def test_q1(self):
+        known = 90.0
+        observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line3)
+        assert observed == known
+
+    def test_q2(self):
+        known = 90.0
+        observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line2)
+        assert observed == known
+
+    def test_q3(self):
+        known = 90.0
+        observed = sgeop.geometry.angle_between_two_lines(self.line2, self.line4)
+        assert observed == known
+
+    def test_q4(self):
+        known = 90.0
+        observed = sgeop.geometry.angle_between_two_lines(self.line3, self.line4)
+        assert observed == known
+
+    def test_indistinct(self):
+        known = 0.0
+        with pytest.warns(
+            UserWarning,
+            match="Input lines are identical - must be distinct. Returning 0.0.",
+        ):
+            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line1)
+        assert observed == known
+
+    def test_not_adjacent(self):
+        known = 0.0
+        with pytest.warns(
+            UserWarning, match="Input lines do not share a vertex. Returning 0.0."
+        ):
+            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line4)
+        assert observed == known
