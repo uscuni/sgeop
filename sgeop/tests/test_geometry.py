@@ -101,11 +101,15 @@ class TestAngelBetween2Lines:
         assert observed == known
 
     def test_indistinct(self):
-        with pytest.raises(
-            ValueError, match="Input lines are identical - must be distinct."
+        known = 0.0
+        with pytest.warns(
+            UserWarning, match="Input lines are identical - must be distinct."
         ):
-            sgeop.geometry.angle_between_two_lines(self.line1, self.line1)
+            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line1)
+        assert observed == known
 
     def test_not_adjacent(self):
-        with pytest.raises(ValueError, match="Input lines do not share a vertex."):
-            sgeop.geometry.angle_between_two_lines(self.line1, self.line4)
+        known = 0.0
+        with pytest.warns(UserWarning, match="Input lines do not share a vertex."):
+            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line4)
+        assert observed == known

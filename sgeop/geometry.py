@@ -49,9 +49,16 @@ def angle_between_two_lines(
     Based on ``momepy.coins`` but adapted to shapely lines.
     """
 
+    return_bad = 0.0
+
     lines_distinct = line1 != line2
     if not lines_distinct:
-        raise ValueError("Input lines are identical - must be distinct.")
+        warnings.warn(
+            f"Input lines are identical - must be distinct. Returning {return_bad}",
+            UserWarning,
+            stacklevel=2,
+        )
+        return return_bad
 
     # extract points
     a, b, c, d = shapely.get_coordinates([line1, line2]).tolist()
@@ -63,7 +70,12 @@ def angle_between_two_lines(
 
     lines_share_vertex = max(points.values()) > 1
     if not lines_share_vertex:
-        raise ValueError("Input lines do not share a vertex.")
+        warnings.warn(
+            "Input lines do not share a vertex. Returning {return_bad}",
+            UserWarning,
+            stacklevel=2,
+        )
+        return return_bad
 
     # points where line touch = "origin" (for vector-based angle calculation)
     origin = [k for k, v in points.items() if v == 2][0]
