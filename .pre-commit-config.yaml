@@ -1,0 +1,11 @@
+files: "sgeop\/"
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.6.8"
+    hooks:
+      - id: ruff
+      - id: ruff-format
+
+ci:
+  autofix_prs: false
+  autoupdate_schedule: quarterly

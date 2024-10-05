@@ -1,0 +1,22 @@
+name: py312_sgeop-latest
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - esda
+  - geopandas
+  - libpysal
+  - momepy
+  - networkx
+  - numpy
+  - osmnx
+  - pandas
+  - pyarrow
+  - pyogrio
+  - scipy
+  - shapely
+  # testing
+  - pre-commit
+  - pytest
+  - pytest-cov
+  - pytest-xdist
