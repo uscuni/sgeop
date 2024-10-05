@@ -12,8 +12,6 @@ from scipy import spatial
 
 from .nodes import consolidate_nodes
 
-__all__ = ["_is_within", "voronoi_skeleton"]
-
 
 def _is_within(
     line: np.ndarray[shapely.Geometry], poly: shapely.Polygon, rtol: float = 1e-4
