@@ -54,7 +54,7 @@ def angle_between_two_lines(
     lines_distinct = line1 != line2
     if not lines_distinct:
         warnings.warn(
-            f"Input lines are identical - must be distinct. Returning {return_bad}",
+            f"Input lines are identical - must be distinct. Returning {return_bad}.",
             UserWarning,
             stacklevel=2,
         )
@@ -71,7 +71,7 @@ def angle_between_two_lines(
     lines_share_vertex = max(points.values()) > 1
     if not lines_share_vertex:
         warnings.warn(
-            "Input lines do not share a vertex. Returning {return_bad}",
+            f"Input lines do not share a vertex. Returning {return_bad}.",
             UserWarning,
             stacklevel=2,
         )
