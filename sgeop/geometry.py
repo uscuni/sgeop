@@ -97,14 +97,14 @@ def angle_between_two_lines(
 
 
 def voronoi_skeleton(
-    lines,
-    poly=None,
-    snap_to=None,
-    max_segment_length=1,
-    buffer=None,
-    secondary_snap_to=None,
-    limit_distance=2,
-    consolidation_tolerance=None,
+    lines: list | np.ndarray | gpd.GeoSeries,
+    poly: None | shapely.Polygon = None,
+    snap_to: None | gpd.GeoSeries = None,
+    max_segment_length: int = 1,
+    buffer: None | float | int = None,
+    secondary_snap_to: None | gpd.GeoSeries = None,
+    limit_distance: None | int = 2,
+    consolidation_tolerance: None | float = None,
 ):
     """
     Returns average geometry.
@@ -112,18 +112,25 @@ def voronoi_skeleton(
     Parameters
     ----------
     lines : array_like
-        LineStrings connected at endpoints
-    poly : shapely.geometry.Polygon
-        polygon enclosed by `lines`
-    snap_to : gpd.GeoSeries
-        series of geometries that shall be connected to the skeleton
+        LineStrings connected at endpoints. If ``poly`` is passed in, ``lines``
+        must be a ``geopandas.GeoSeries``.
+    poly : None | shapely.Polygon = None
+        Polygon enclosed by ``lines``.
+    snap_to : None | gpd.GeoSeries = None
+        Series of geometries that shall be connected to the skeleton.
+    max_segment_length: int = 1
+        ...
     distance : float
-        distance for interpolation
-    buffer : float
-        optional custom buffer distance for dealing with Voronoi infinity issues
-    consolidation_tolerance : float
-        tolerance passed to node consolidation within the resulting skeleton. If None,
-        no consolidation happens
+        ---- Distance for interpolation ----
+    buffer : None | float | int = None
+        Optional custom buffer distance for dealing with Voronoi infinity issues.
+    secondary_snap_to : None | gpd.GeoSeries = None
+        ...
+    limit_distance : None | int = 2
+        ...
+    consolidation_tolerance : None | float = None
+        Tolerance passed to node consolidation within the resulting skeleton.
+        If ``None``, no consolidation happens.
 
     Returns
     -------
@@ -133,6 +140,8 @@ def voronoi_skeleton(
     if buffer is None:
         buffer = max_segment_length * 20
     if not poly:
+        if not isinstance(lines, gpd.GeoSeries):
+            lines = gpd.GeoSeries(lines)
         poly = shapely.box(*lines.total_bounds)
     # get an additional line around the lines to avoid infinity issues with Voronoi
     extended_lines = list(lines) + [poly.buffer(buffer).boundary]
