@@ -196,3 +196,15 @@ class TestVoronoiSkeleton:
 
         pytest.geom_test(observed_edges, known_edges)
         pytest.geom_test(observed_splits, known_splits)
+
+
+def test_remove_sliver():
+    known = shapely.LineString(((1000, 1000), (1000, 9000)))
+
+    observed = sgeop.geometry._remove_sliver(
+        shapely.MultiLineString(
+            ((((1000, 1000), (1000, 9000))), (((1000, 1020), (1002, 1020))))
+        )
+    )
+
+    assert observed == known

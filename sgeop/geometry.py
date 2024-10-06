@@ -203,9 +203,7 @@ def voronoi_skeleton(
             edgeline = shapely.intersection(edgeline, limit)
 
             # in edge cases, this can result in a MultiLineString with one sliver part
-            if edgeline.geom_type == "MultiLineString":
-                parts = shapely.get_parts(edgeline)
-                edgeline = parts[np.argmax(shapely.length(parts))]
+            edgeline = _remove_sliver(edgeline)
 
         # check if a, b lines share a node
         intersection = shapely_lines[b].intersection(shapely_lines[a])
@@ -274,6 +272,16 @@ def voronoi_skeleton(
         ).geometry.to_numpy()
 
     return edgelines, splitters
+
+
+def _remove_sliver(
+    edgeline: shapely.LineString | shapely.MultiLineString,
+) -> shapely.LineString:
+    """Remove sliver(s) if present."""
+    if edgeline.geom_type == "MultiLineString":
+        parts = shapely.get_parts(edgeline)
+        edgeline = parts[np.argmax(shapely.length(parts))]
+    return edgeline
 
 
 def snap_to_targets(edgelines, poly, snap_to, secondary_snap_to=None):
