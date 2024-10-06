@@ -17,10 +17,6 @@ def polygonize(
     collection: line_collection, as_geom: bool = True
 ) -> shapely.Polygon | geopandas.GeoSeries:
     """Testing helper -- Create polygon from collection of lines."""
-
-    def _collection(c):
-        return shapely.polygonize(c)
-
     if isinstance(collection, pandas.Series | geopandas.GeoSeries):
         _poly = geopandas.GeoSeries(collection).polygonize().buffer(0)
         if as_geom:
