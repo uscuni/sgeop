@@ -264,11 +264,7 @@ def voronoi_skeleton(
 
     edgelines = shapely.line_merge(edgelines[shapely.length(edgelines) > 0])
     edgelines = _as_parts(edgelines)
-
-    if consolidation_tolerance and edgelines.shape[0] > 0:
-        edgelines = consolidate_nodes(
-            edgelines, tolerance=consolidation_tolerance, preserve_ends=True
-        ).geometry.to_numpy()
+    edgelines = _consolidate(edgelines, consolidation_tolerance)
 
     return edgelines, splitters
 
@@ -287,6 +283,17 @@ def _as_parts(edgelines: np.ndarray) -> np.ndarray:
     """Return constituent LineStrings if MultiLineString present."""
     if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
         edgelines = shapely.get_parts(edgelines)
+    return edgelines
+
+
+def _consolidate(
+    edgelines: np.ndarray, consolidation_tolerance: float | int
+) -> np.ndarray:
+    """Return ``edgelines`` from consolidated nodes, if criteria met."""
+    if consolidation_tolerance and edgelines.shape[0] > 0:
+        edgelines = consolidate_nodes(
+            edgelines, tolerance=consolidation_tolerance, preserve_ends=True
+        ).geometry.to_numpy()
     return edgelines
 
 

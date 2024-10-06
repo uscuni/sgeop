@@ -198,36 +198,30 @@ class TestVoronoiSkeleton:
         pytest.geom_test(observed_splits, known_splits)
 
 
+line_100_900 = shapely.LineString(((1000, 1000), (1000, 9000)))
+line_100_120 = shapely.LineString(((1000, 1020), (1020, 1020)))
+lines_100_900_100_120 = shapely.MultiLineString((line_100_900, line_100_120))
+line_110_900 = shapely.LineString(((1000, 9000), (1100, 9000)))
+
+
 def test_remove_sliver():
-    known = shapely.LineString(((1000, 1000), (1000, 9000)))
-
-    observed = sgeop.geometry._remove_sliver(
-        shapely.MultiLineString(
-            ((((1000, 1000), (1000, 9000))), (((1000, 1020), (1002, 1020))))
-        )
-    )
-
+    known = line_100_900
+    observed = sgeop.geometry._remove_sliver(lines_100_900_100_120)
     assert observed == known
 
 
 def test_as_parts():
-    known = numpy.array(
-        [
-            shapely.LineString(((1000, 1000), (1000, 9000))),
-            shapely.LineString(((1000, 1020), (1002, 1020))),
-            shapely.LineString(((1000, 9000), (1100, 9000))),
-        ]
-    )
-
+    known = numpy.array([line_100_900, line_100_120, line_110_900])
     observed = sgeop.geometry._as_parts(
-        numpy.array(
-            [
-                shapely.MultiLineString(
-                    ((((1000, 1000), (1000, 9000))), (((1000, 1020), (1002, 1020))))
-                ),
-                shapely.LineString(((1000, 9000), (1100, 9000))),
-            ]
-        )
+        numpy.array([lines_100_900_100_120, line_110_900])
     )
+    numpy.testing.assert_array_equal(observed, known)
 
+
+@pytest.mark.parametrize("tolerance", [0.1, 1, 10, 100, 1_000, 10_000, 100_000])
+def test_consolidate(tolerance):
+    known = numpy.array([line_100_900, line_100_120, line_110_900])
+    observed = sgeop.geometry._consolidate(
+        numpy.array([line_100_900, line_100_120, line_110_900]), tolerance
+    )
     numpy.testing.assert_array_equal(observed, known)
