@@ -3,14 +3,11 @@ import numpy
 import pandas
 import pytest
 import shapely
-from packaging.version import Version
-
-GPD_GE_100 = Version(geopandas.__version__) >= Version("1.0.0")
 
 line_collection = (
     list[shapely.LineString]
     | tuple[shapely.LineString]
-    | numpy.ndarray[shapely.LineString]
+    | numpy.ndarray
     | pandas.Series
     | geopandas.GeoSeries
 )
@@ -25,10 +22,7 @@ def polygonize(
         return shapely.polygonize(c)
 
     if isinstance(collection, pandas.Series | geopandas.GeoSeries):
-        if GPD_GE_100:
-            _poly = geopandas.GeoSeries(collection).polygonize().buffer(0)
-        else:
-            _poly = geopandas.GeoSeries(_collection(list(collection)))
+        _poly = geopandas.GeoSeries(collection).polygonize().buffer(0)
         if as_geom:
             return _poly.squeeze()
         else:
