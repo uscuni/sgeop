@@ -208,3 +208,26 @@ def test_remove_sliver():
     )
 
     assert observed == known
+
+
+def test_as_parts():
+    known = numpy.array(
+        [
+            shapely.LineString(((1000, 1000), (1000, 9000))),
+            shapely.LineString(((1000, 1020), (1002, 1020))),
+            shapely.LineString(((1000, 9000), (1100, 9000))),
+        ]
+    )
+
+    observed = sgeop.geometry._as_parts(
+        numpy.array(
+            [
+                shapely.MultiLineString(
+                    ((((1000, 1000), (1000, 9000))), (((1000, 1020), (1002, 1020))))
+                ),
+                shapely.LineString(((1000, 9000), (1100, 9000))),
+            ]
+        )
+    )
+
+    numpy.testing.assert_array_equal(observed, known)

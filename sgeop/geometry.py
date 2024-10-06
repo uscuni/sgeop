@@ -263,8 +263,7 @@ def voronoi_skeleton(
     edgelines = edgelines[edgelines != None]  # noqa: E711
 
     edgelines = shapely.line_merge(edgelines[shapely.length(edgelines) > 0])
-    if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
-        edgelines = shapely.get_parts(edgelines)
+    edgelines = _as_parts(edgelines)
 
     if consolidation_tolerance and edgelines.shape[0] > 0:
         edgelines = consolidate_nodes(
@@ -282,6 +281,13 @@ def _remove_sliver(
         parts = shapely.get_parts(edgeline)
         edgeline = parts[np.argmax(shapely.length(parts))]
     return edgeline
+
+
+def _as_parts(edgelines: np.ndarray) -> np.ndarray:
+    """Return constituent LineStrings if MultiLineString present."""
+    if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
+        edgelines = shapely.get_parts(edgelines)
+    return edgelines
 
 
 def snap_to_targets(edgelines, poly, snap_to, secondary_snap_to=None):
