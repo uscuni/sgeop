@@ -5,7 +5,7 @@ dependencies:
   - python=3.10
   - esda=2.5.1
   - fiona=1.9
-  - geopandas=0.13.0
+  - geopandas=0.14.0
   - libpysal
   - momepy=0.8.1
   - networkx=2.8
