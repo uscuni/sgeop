@@ -4,13 +4,13 @@ channels:
 dependencies:
   - python=3.12
   - esda>=2.5.1
-  - geopandas>=0.14.0
-  - libpysal
+  - geopandas>=1.0.0
+  - libpysal>=4.10
   - momepy>=0.8.1
   - networkx>=2.8
-  - numpy
+  - numpy>=1.22
   - pandas>=1.5.1
-  - scipy
+  - scipy>=1.8
   - shapely>=2
   # testing
   - pre-commit
