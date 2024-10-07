@@ -5,16 +5,14 @@ dependencies:
   - python=3.10
   - esda=2.5.1
   - fiona=1.9
-  - geopandas=0.13.0
-  - libpysal
+  - geopandas=1.0.0
+  - libpysal=4.12
   - momepy=0.8.1
   - networkx=2.8
-  - numpy
+  - numpy=1.22
   - pandas=1.5.1
-  - pyarrow
-  - pyogrio
-  - scipy
-  - shapely=2
+  - scipy=1.9
+  - shapely=2.0.4
   # testing
   - pre-commit
   - pytest
