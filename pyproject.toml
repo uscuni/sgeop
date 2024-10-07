@@ -24,17 +24,17 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: GIS",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "esda>=2.5.1",
-    "geopandas>=1.0.0",
-    "libpysal>=4.12",
+    "esda>=2.6.0",
+    "geopandas>=1.0.1",
+    "libpysal>=4.12.1",
     "momepy>=0.8.1",
-    "networkx>=2.8",
-    "numpy>=1.22",
-    "pandas>=1.5.1",
-    "scipy>=1.9",
-    "shapely>=2.0.4",
+    "networkx>=3.3",
+    "numpy>=1.26.4",
+    "pandas>=2.2.3",
+    "scipy>=1.14.1",
+    "shapely>=2.0.6",
 ]
 
 [project.urls]
