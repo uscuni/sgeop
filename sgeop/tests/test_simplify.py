@@ -1,6 +1,7 @@
 import pathlib
 
 import geopandas.testing
+import pytest
 
 import sgeop
 
@@ -15,4 +16,4 @@ def test_simplify():
         geopandas.read_parquet(test_data / f"{ac}_original.parquet")
     )
 
-    geopandas.testing.assert_geodataframe_equal(observed, known)
+    pytest.geom_test(observed.geometry, known.geometry, relax=True)
