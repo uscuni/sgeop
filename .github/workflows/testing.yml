@@ -24,7 +24,7 @@
        matrix:
          os: [ubuntu-latest]
          environment-file: [
-            ci/py310_sgeop-oldest.yaml,
+            ci/py311_sgeop-oldest.yaml,
             ci/py311_sgeop-latest.yaml,
             ci/py312_sgeop-latest.yaml,
             ci/py312_sgeop-dev.yaml,
