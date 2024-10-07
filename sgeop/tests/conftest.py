@@ -8,6 +8,7 @@ def geom_test(collection1, collection2, relax=False):
         geopandas.GeoSeries(collection1),
         geopandas.GeoSeries(collection2),
         check_less_precise=relax,
+        normalize=relax,
     )
 
 
