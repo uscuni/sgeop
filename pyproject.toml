@@ -46,6 +46,7 @@ tests = [
     "codecov",
     "coverage",
     "pre-commit",
+    "pyarrow>=17.0",
     "pytest",
     "pytest-cov",
     "pytest-xdist",
