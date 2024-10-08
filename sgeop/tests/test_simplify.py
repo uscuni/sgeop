@@ -1,9 +1,8 @@
 import pathlib
 
-import pytest
+import geopandas
 import shapely
 from pandas.testing import assert_series_equal
-import geopandas
 
 import sgeop
 
@@ -18,6 +17,7 @@ def test_simplify():
         geopandas.read_parquet(test_data / f"{ac}_original.parquet")
     )
 
-    assert shapely.equals_exact(known.geometry.normalize(), observed.geometry.normalize(), tolerance=1e-1).all()
+    assert shapely.equals_exact(
+        known.geometry.normalize(), observed.geometry.normalize(), tolerance=1e-1
+    ).all()
     assert_series_equal(known._status, observed._status)
-
