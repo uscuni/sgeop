@@ -53,7 +53,8 @@ def get_artifacts(
                 "No threshold for artifact detection found. Pass explicit "
                 "`threshold` or `threshold_fallback` to provide the value directly."
             )
-        threshold = fas.threshold
+        else:
+            threshold = fas.threshold
     polygons.loc[polygons.face_artifact_index < threshold, "is_artifact"] = True
 
     # compute area and isoareal quotient:
