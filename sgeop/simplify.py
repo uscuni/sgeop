@@ -489,6 +489,7 @@ def simplify_network(
     artifacts, _ = get_artifacts(
         new_roads,
         threshold=threshold,
+        threshold_fallback=artifact_threshold_fallback,
         area_threshold_blocks=area_threshold_blocks,
         isoareal_threshold_blocks=isoareal_threshold_blocks,
         area_threshold_circles=area_threshold_circles,
