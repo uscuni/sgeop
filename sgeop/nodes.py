@@ -35,16 +35,16 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                 lines_split = lines_split[~shapely.is_empty(lines_split)]
                 if lines_split.shape[0] > 1:
                     gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
+                    gdf_split.index = (gdf_split.index * -1) - 1
                     gdf_split["_status"] = "changed"
                     cleaned_roads = pd.concat(
                         [
                             cleaned_roads.drop(i),
                             gdf_split,
                         ],
-                        ignore_index=True,
                     )
 
-    return cleaned_roads
+    return cleaned_roads.reset_index(drop=True)
 
 
 def _status(x):
