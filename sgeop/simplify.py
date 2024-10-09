@@ -379,9 +379,6 @@ def get_type(edges, shared_edge):
     ):
         return "S"
 
-    if edges.empty: # non-planar case
-        return "C"
-
     all_ends = edges[edges.coins_end]
     mains = edges[~edges.coins_group.isin(all_ends.coins_group)]
     shared = edges.loc[shared_edge]
