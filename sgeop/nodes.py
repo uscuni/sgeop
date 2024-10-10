@@ -28,21 +28,28 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                     ignore_index=True,
                 )
         else:
+            to_be_dropped = []
+            to_be_added = []
             for i, e in edge.items():
-                # TODO: deduplicate this code
                 snapped = shapely.snap(e, split, tolerance=eps)
                 lines_split = shapely.get_parts(shapely.ops.split(snapped, split))
                 lines_split = lines_split[~shapely.is_empty(lines_split)]
                 if lines_split.shape[0] > 1:
-                    gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
-                    gdf_split["_status"] = "changed"
-                    cleaned_roads = pd.concat(
-                        [
-                            cleaned_roads.drop(i),
-                            gdf_split,
-                        ],
-                        ignore_index=True,
-                    )
+                    to_be_dropped.append(i)
+                    to_be_added.append(lines_split)
+
+            if to_be_added:
+                gdf_split = gpd.GeoDataFrame(
+                    geometry=np.concatenate(to_be_added), crs=crs
+                )
+                gdf_split["_status"] = "changed"
+                cleaned_roads = pd.concat(
+                    [
+                        cleaned_roads.drop(to_be_dropped),
+                        gdf_split,
+                    ],
+                    ignore_index=True,
+                )
 
     return cleaned_roads
 

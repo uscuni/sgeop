@@ -406,7 +406,7 @@ def get_solution(group, roads):
     ]
     # find the road segment that is contained within the cluster geometry
     shared = roads.index[roads.sindex.query(cluster_geom, predicate="contains")]
-    if shared.empty:
+    if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
     shared = shared.item()
