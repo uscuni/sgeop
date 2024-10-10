@@ -39,7 +39,9 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                     to_be_added.append(lines_split)
 
             if to_be_added:
-                gdf_split = gpd.GeoDataFrame(geometry=np.concatenate(to_be_added), crs=crs)
+                gdf_split = gpd.GeoDataFrame(
+                    geometry=np.concatenate(to_be_added), crs=crs
+                )
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [
