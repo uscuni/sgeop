@@ -12,7 +12,6 @@ line_collection = (
     | geopandas.GeoSeries
 )
 
-
 geometry_collection = (
     list[shapely.GeometryCollection]
     | tuple[shapely.GeometryCollection]
