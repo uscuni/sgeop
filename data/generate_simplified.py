@@ -40,9 +40,6 @@ city_fua = {c: f for f, c in fua_city.items()}
 
 for city, fua in city_fua.items():
 
-    if city != "liege":
-        continue
-
     t1 = time.time()
     aoi = f"{city}_{fua}"
 
@@ -78,7 +75,7 @@ endtime_time = round((time.time() - start_time) / 60.0, 2)
 
 logging.info("")
 logging.info("")
-logging.info(f"Total runtime: {t2} minutes")
+logging.info(f"Total runtime: {endtime_time} minutes")
 logging.info(
     "========================================================================="
 )
