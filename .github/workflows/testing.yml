@@ -73,5 +73,14 @@
            --cov-report term-missing \
            --cov-report xml .
        
+       - name: zip artifacts
+         run: zip ci_artifacts.zip ./* -r
+
+       - name: archive observed simplified networks
+         uses: actions/upload-artifact@v4
+         with:
+           name: ci_artifacts-${{ matrix.environment-file }}
+           path: ci_artifacts.zip
+       
        - name: codecov
          uses: codecov/codecov-action@v4

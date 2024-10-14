@@ -10,6 +10,8 @@ import sgeop
 test_data = pathlib.Path("sgeop", "tests", "data")
 full_fua_data = pathlib.Path("data")
 
+ci_artifacts = pathlib.Path("ci_artifacts")
+
 
 def test_simplify_network_small():
     ac = "apalachicola"
@@ -17,6 +19,8 @@ def test_simplify_network_small():
     observed = sgeop.simplify_network(
         geopandas.read_parquet(test_data / f"{ac}_original.parquet")
     )
+
+    observed.to_parquet(ci_artifacts / ac / "simplified.parquet")
 
     assert_series_equal(known._status, observed._status)
     assert shapely.equals_exact(
@@ -40,6 +44,8 @@ def test_simplify_network_full_fua(aoi, tol):
     observed = sgeop.simplify_network(
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
+
+    observed.to_parquet(ci_artifacts / aoi / "simplified.parquet")
 
     assert_series_equal(known._status, observed._status)
     assert shapely.equals_exact(
