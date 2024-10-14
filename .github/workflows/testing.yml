@@ -79,7 +79,7 @@
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
          with:
-           name: ci_artifacts-${{ matrix.environment-file }}
+           name: ci_artifacts-${{ matrix.os }}
            path: ci_artifacts.zip
        
        - name: codecov
