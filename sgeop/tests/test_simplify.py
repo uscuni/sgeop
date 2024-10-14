@@ -20,7 +20,9 @@ def test_simplify_network_small():
         geopandas.read_parquet(test_data / f"{ac}_original.parquet")
     )
 
-    observed.to_parquet(ci_artifacts / ac / "simplified.parquet")
+    artifact_dir = ci_artifacts / ac
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    observed.to_parquet(artifact_dir / "simplified.parquet")
 
     assert_series_equal(known._status, observed._status)
     assert shapely.equals_exact(
@@ -45,7 +47,9 @@ def test_simplify_network_full_fua(aoi, tol):
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
 
-    observed.to_parquet(ci_artifacts / aoi / "simplified.parquet")
+    artifact_dir = ci_artifacts / aoi
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    observed.to_parquet(artifact_dir / "simplified.parquet")
 
     assert_series_equal(known._status, observed._status)
     assert shapely.equals_exact(
