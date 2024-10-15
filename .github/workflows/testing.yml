@@ -76,14 +76,12 @@
        
        - name: zip artifacts - Ubuntu & macOS
          run: zip ci_artifacts.zip ci_artifacts -r
-         if: matrix.os != 'windows-latest'
-         if: success() || failure()
+         if: matrix.os != 'windows-latest' && (success() || failure())
 
        - name: zip artifacts - Windows
          shell: powershell
          run: Compress-Archive -Path ci_artifacts -Destination ci_artifacts.zip
-         if: matrix.os == 'windows-latest'
-         if: success() || failure()
+         if: matrix.os == 'windows-latest' && (success() || failure())
 
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
