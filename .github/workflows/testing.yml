@@ -77,17 +77,20 @@
        - name: zip artifacts - Ubuntu & macOS
          run: zip ci_artifacts.zip ci_artifacts -r
          if: matrix.os != 'windows-latest'
+         if: success() || failure()
 
        - name: zip artifacts - Windows
          shell: powershell
          run: Compress-Archive -Path ci_artifacts -Destination ci_artifacts.zip
          if: matrix.os == 'windows-latest'
+         if: success() || failure()
 
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
          with:
            name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
            path: ci_artifacts.zip
+         if: success() || failure()
        
        - name: codecov
          uses: codecov/codecov-action@v4
