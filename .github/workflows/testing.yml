@@ -74,8 +74,13 @@
            --cov-report term-missing \
            --cov-report xml .
        
-       - name: zip artifacts
-         run: zip ci_artifacts.zip ./ci_artifacts -r
+       - name: zip artifacts - Ubuntu & macOS
+         run: zip ./ci_artifacts.zip ./ci_artifacts -r
+         if: matrix.os != 'windows-latest'
+
+       - name: zip artifacts - Windows
+         run: Compress-Archive ./ci_artifacts ./ci_artifacts.zip
+         if: matrix.os == 'windows-latest'
 
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
