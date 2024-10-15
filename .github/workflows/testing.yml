@@ -20,24 +20,24 @@
      name: ${{ matrix.os }}, ${{ matrix.environment-file }}
      runs-on: ${{ matrix.os }}
      timeout-minutes: 30
+     continue-on-error: true
      strategy:
        matrix:
          os: [ubuntu-latest]
          environment-file: [
-            ci/py311_sgeop-oldest.yaml,
-            ci/py311_sgeop-latest.yaml,
-            ci/py312_sgeop-latest.yaml,
-            ci/py312_sgeop-dev.yaml,
+            py311_sgeop-oldest,
+            py311_sgeop-latest,
+            py312_sgeop-latest,
+            py312_sgeop-dev,
          ]
          include:
-           - environment-file: ci/py312_sgeop-latest.yaml
+           - environment-file: py312_sgeop-latest
              os: macos-13 # Intel
-           - environment-file: ci/py312_sgeop-latest.yaml
+           - environment-file: py312_sgeop-latest
              os: macos-14 # Apple Silicon
-           - environment-file: ci/py312_sgeop-latest.yaml
+           - environment-file: py312_sgeop-latest
              os: windows-latest
        fail-fast: false
-       continue-on-error: true
 
      defaults:
        run:
@@ -52,7 +52,7 @@
        - name: setup micromamba
          uses: mamba-org/setup-micromamba@v2
          with:
-           environment-file: ${{ matrix.environment-file }}
+           environment-file: ci/${{ matrix.environment-file }}.yaml
            micromamba-version: "latest"
 
        - name: install package
@@ -80,7 +80,7 @@
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
          with:
-           name: ci_artifacts-${{ matrix.os }}-"${${{ matrix.environment-file }}//ci\/}"
+           name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
            path: ci_artifacts.zip
        
        - name: codecov
