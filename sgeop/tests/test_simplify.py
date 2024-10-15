@@ -2,7 +2,6 @@ import pathlib
 
 import geopandas
 import pytest
-import shapely
 from pandas.testing import assert_series_equal
 
 import sgeop
@@ -32,9 +31,7 @@ def test_simplify_network_small():
 
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
-    assert shapely.equals_exact(
-        known.geometry.normalize(), observed.geometry.normalize(), tolerance=1e-1
-    ).all()
+    pytest.geom_test(known, observed)
 
 
 @pytest.mark.parametrize(
@@ -63,6 +60,4 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     assert pytest.approx(observed_length, rel=0.00001) == known_length
 
     assert_series_equal(known._status, observed._status)
-    assert shapely.equals_exact(
-        known.geometry.normalize(), observed.geometry.normalize(), tolerance=tol
-    ).all()
+    pytest.geom_test(known, observed, tolerance=tol)

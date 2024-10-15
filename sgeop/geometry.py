@@ -13,9 +13,7 @@ from scipy import spatial
 from .nodes import consolidate_nodes
 
 
-def _is_within(
-    line: np.ndarray[shapely.Geometry], poly: shapely.Polygon, rtol: float = 1e-4
-) -> bool:
+def _is_within(line: np.ndarray, poly: shapely.Polygon, rtol: float = 1e-4) -> bool:
     """Check if the line is within a polygon with a set relative tolerance.
 
     Parameters
@@ -97,14 +95,14 @@ def angle_between_two_lines(
 
 
 def voronoi_skeleton(
-    lines,
-    poly=None,
-    snap_to=None,
-    max_segment_length=1,
-    buffer=None,
-    secondary_snap_to=None,
-    limit_distance=2,
-    consolidation_tolerance=None,
+    lines: list | np.ndarray | gpd.GeoSeries,
+    poly: None | shapely.Polygon = None,
+    snap_to: None | gpd.GeoSeries = None,
+    max_segment_length: int = 1,
+    buffer: None | float | int = None,
+    secondary_snap_to: None | gpd.GeoSeries = None,
+    limit_distance: None | int = 2,
+    consolidation_tolerance: None | float = None,
 ):
     """
     Returns average geometry.
@@ -112,18 +110,24 @@ def voronoi_skeleton(
     Parameters
     ----------
     lines : array_like
-        LineStrings connected at endpoints
-    poly : shapely.geometry.Polygon
-        polygon enclosed by `lines`
-    snap_to : gpd.GeoSeries
-        series of geometries that shall be connected to the skeleton
-    distance : float
-        distance for interpolation
-    buffer : float
-        optional custom buffer distance for dealing with Voronoi infinity issues
-    consolidation_tolerance : float
-        tolerance passed to node consolidation within the resulting skeleton. If None,
-        no consolidation happens
+        LineStrings connected at endpoints. If ``poly`` is passed in, ``lines``
+        must be a ``geopandas.GeoSeries``.
+    poly : None | shapely.Polygon = None
+        Polygon enclosed by ``lines``.
+    snap_to : None | gpd.GeoSeries = None
+        Series of geometries that shall be connected to the skeleton.
+    max_segment_length: int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    buffer : None | float | int = None
+        Optional custom buffer distance for dealing with Voronoi infinity issues.
+    secondary_snap_to : None | gpd.GeoSeries = None
+        ...
+    limit_distance : None | int = 2
+        ...
+    consolidation_tolerance : None | float = None
+        Tolerance passed to node consolidation within the resulting skeleton.
+        If ``None``, no consolidation happens.
 
     Returns
     -------
@@ -133,6 +137,8 @@ def voronoi_skeleton(
     if buffer is None:
         buffer = max_segment_length * 20
     if not poly:
+        if not isinstance(lines, gpd.GeoSeries):
+            lines = gpd.GeoSeries(lines)
         poly = shapely.box(*lines.total_bounds)
     # get an additional line around the lines to avoid infinity issues with Voronoi
     extended_lines = list(lines) + [poly.buffer(buffer).boundary]
@@ -196,9 +202,7 @@ def voronoi_skeleton(
             edgeline = shapely.intersection(edgeline, limit)
 
             # in edge cases, this can result in a MultiLineString with one sliver part
-            if edgeline.geom_type == "MultiLineString":
-                parts = shapely.get_parts(edgeline)
-                edgeline = parts[np.argmax(shapely.length(parts))]
+            edgeline = _remove_sliver(edgeline)
 
         # check if a, b lines share a node
         intersection = shapely_lines[b].intersection(shapely_lines[a])
@@ -258,15 +262,38 @@ def voronoi_skeleton(
     edgelines = edgelines[edgelines != None]  # noqa: E711
 
     edgelines = shapely.line_merge(edgelines[shapely.length(edgelines) > 0])
+    edgelines = _as_parts(edgelines)
+    edgelines = _consolidate(edgelines, consolidation_tolerance)
+
+    return edgelines, splitters
+
+
+def _remove_sliver(
+    edgeline: shapely.LineString | shapely.MultiLineString,
+) -> shapely.LineString:
+    """Remove sliver(s) if present."""
+    if edgeline.geom_type == "MultiLineString":
+        parts = shapely.get_parts(edgeline)
+        edgeline = parts[np.argmax(shapely.length(parts))]
+    return edgeline
+
+
+def _as_parts(edgelines: np.ndarray) -> np.ndarray:
+    """Return constituent LineStrings if MultiLineString present."""
     if np.unique(shapely.get_type_id(edgelines)).shape[0] > 1:
         edgelines = shapely.get_parts(edgelines)
+    return edgelines
 
+
+def _consolidate(
+    edgelines: np.ndarray, consolidation_tolerance: float | int
+) -> np.ndarray:
+    """Return ``edgelines`` from consolidated nodes, if criteria met."""
     if consolidation_tolerance and edgelines.shape[0] > 0:
         edgelines = consolidate_nodes(
             edgelines, tolerance=consolidation_tolerance, preserve_ends=True
         ).geometry.to_numpy()
-
-    return edgelines, splitters
+    return edgelines
 
 
 def snap_to_targets(edgelines, poly, snap_to, secondary_snap_to=None):
