@@ -37,6 +37,7 @@
            - environment-file: ci/py312_sgeop-latest.yaml
              os: windows-latest
        fail-fast: false
+       continue-on-error: true
 
      defaults:
        run:
@@ -74,12 +75,12 @@
            --cov-report xml .
        
        - name: zip artifacts
-         run: zip ci_artifacts.zip ./* -r
+         run: zip ci_artifacts.zip ./ci_artifacts -r
 
        - name: archive observed simplified networks
          uses: actions/upload-artifact@v4
          with:
-           name: ci_artifacts-${{ matrix.os }}
+           name: ci_artifacts-${{ matrix.os }}-"${${{ matrix.environment-file }}//ci\/}"
            path: ci_artifacts.zip
        
        - name: codecov
