@@ -80,7 +80,7 @@
 
        - name: zip artifacts - Windows
          shell: powershell
-         run: Compress-Archive -Path ci_artifacts/* -Destination ci_artifacts.zip
+         run: Compress-Archive -Path ci_artifacts -Destination ci_artifacts.zip
          if: matrix.os == 'windows-latest'
 
        - name: archive observed simplified networks
