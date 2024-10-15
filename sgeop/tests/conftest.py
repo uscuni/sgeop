@@ -26,7 +26,7 @@ def polygonize(
 ) -> shapely.Polygon | geopandas.GeoSeries:
     """Testing helper -- Create polygon from collection of lines."""
     if isinstance(collection, pandas.Series | geopandas.GeoSeries):
-        _poly = geopandas.GeoSeries(collection).polygonize().buffer(0)
+        _poly = geopandas.GeoSeries(collection).polygonize()
         if as_geom:
             return _poly.squeeze()
         else:
