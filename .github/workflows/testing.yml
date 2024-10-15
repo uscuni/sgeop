@@ -72,7 +72,8 @@
            --cov core \
            --cov-append \
            --cov-report term-missing \
-           --cov-report xml .
+           --cov-report xml . \
+           --env_type ${{ matrix.environment-file }}
        
        - name: zip artifacts - Ubuntu & macOS
          run: zip ci_artifacts.zip ci_artifacts -r

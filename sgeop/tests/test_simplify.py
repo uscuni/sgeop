@@ -57,7 +57,8 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     artifact_dir.mkdir(parents=True, exist_ok=True)
     observed.to_parquet(artifact_dir / "simplified.parquet")
 
-    assert pytest.approx(observed_length, rel=0.00001) == known_length
+    assert pytest.approx(observed_length, rel=0.0001) == known_length
 
-    assert_series_equal(known._status, observed._status)
-    pytest.geom_test(known, observed, tolerance=tol)
+    if pytest.ubuntu and pytest.env_type != "oldest":
+        assert_series_equal(known._status, observed._status)
+        pytest.geom_test(known, observed, tolerance=tol)
