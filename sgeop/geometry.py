@@ -117,9 +117,8 @@ def voronoi_skeleton(
     snap_to : None | gpd.GeoSeries = None
         Series of geometries that shall be connected to the skeleton.
     max_segment_length: int = 1
-        ...
-    distance : float
-        ---- Distance for interpolation ----
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
     buffer : None | float | int = None
         Optional custom buffer distance for dealing with Voronoi infinity issues.
     secondary_snap_to : None | gpd.GeoSeries = None
