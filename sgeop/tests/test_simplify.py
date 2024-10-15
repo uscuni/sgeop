@@ -1,8 +1,7 @@
 import pathlib
 
 import geopandas
-
-# import pytest
+import pytest
 import shapely
 from pandas.testing import assert_series_equal
 
@@ -31,7 +30,6 @@ def test_simplify_network_small():
     ).all()
 
 
-"""
 @pytest.mark.parametrize(
     "aoi,tol",
     [
@@ -57,4 +55,3 @@ def test_simplify_network_full_fua(aoi, tol):
     assert shapely.equals_exact(
         known.geometry.normalize(), observed.geometry.normalize(), tolerance=tol
     ).all()
-"""
