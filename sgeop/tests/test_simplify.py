@@ -1,6 +1,7 @@
 import pathlib
 
 import geopandas
+import numpy
 import pytest
 from pandas.testing import assert_series_equal
 
@@ -28,6 +29,7 @@ def test_simplify_network_small():
     observed.to_parquet(artifact_dir / "simplified.parquet")
 
     assert pytest.approx(observed_length, rel=0.00001) == known_length
+    assert observed.index.dtype == numpy.dtype("int64")
 
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
@@ -58,6 +60,7 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     observed.to_parquet(artifact_dir / "simplified.parquet")
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
+    assert observed.index.dtype == numpy.dtype("int64")
 
     if pytest.ubuntu and pytest.env_type != "oldest":
         assert_series_equal(known._status, observed._status)
