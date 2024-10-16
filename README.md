@@ -1,6 +1,6 @@
 # `sgeop`: Street Geometry Processing Toolkit
 
-[![Continuous Integration](https://github.com/uscuni/sgeop/actions/workflows/testing.yml/badge.svg)](https://github.com/uscuni/sgeop/actions/workflows/testing.yml) [![codecov](https://codecov.io/gh/uscuni/sgeop/branch/main/graph/badge.svg?token=VNn0WR5JWT)](https://codecov.io/gh/uscuni/sgeop)
+[![Continuous Integration](https://github.com/uscuni/sgeop/actions/workflows/testing.yml/badge.svg)](https://github.com/uscuni/sgeop/actions/workflows/testing.yml) [![codecov](https://codecov.io/gh/uscuni/sgeop/graph/badge.svg?token=GFISMU0WPS)](https://codecov.io/gh/uscuni/sgeop)
 
 Street geometry processing toolkit
 
