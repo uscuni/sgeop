@@ -1,3 +1,5 @@
+import platform
+
 import geopandas.testing
 import numpy
 import pandas
@@ -59,8 +61,27 @@ def geom_test(
     ).all()
 
 
+def pytest_addoption(parser):
+    """Add custom command line arguments."""
+
+    # flag for determining CI environment
+    parser.addoption(
+        "--env_type",
+        action="store",
+        default="latest",
+        help="Testing environment type label",
+        type=str,
+    )
+
+
 def pytest_configure(config):  # noqa: ARG001
     """PyTest session attributes, methods, etc."""
+
+    valid_env_types = ["oldest", "latest", "dev"]
+    pytest.env_type = config.getoption("env_type").split("-")[-1]
+    assert pytest.env_type in valid_env_types
+
+    pytest.ubuntu = "ubuntu" in platform.version().lower()
 
     pytest.polygonize = polygonize
     pytest.geom_test = geom_test
