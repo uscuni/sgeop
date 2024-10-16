@@ -51,7 +51,7 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                     ignore_index=True,
                 )
 
-    return cleaned_roads
+    return cleaned_roads.reset_index(drop=True)
 
 
 def _status(x):
