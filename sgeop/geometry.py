@@ -396,11 +396,6 @@ def _prep_components(lines: np.ndarray) -> tuple[pd.Series, pd.Series, gpd.GeoSe
 
 def _split_add(line: shapely.LineString, splits: list, adds: list) -> tuple[list]:
     """Helper for preparing splitter points & added lines."""
-    splits.append(_last_point(line))
+    splits.append(shapely.get_point(line, -1))
     adds.append(line)
     return splits, adds
-
-
-def _last_point(line: shapely.LineString) -> shapely.Point:
-    """Helper for returning final point on a line."""
-    return shapely.get_point(line, -1)

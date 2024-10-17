@@ -266,22 +266,13 @@ def test_prep_components():
     geopandas.testing.assert_geodataframe_equal(observed_comps, known_comps)
 
 
-_x = 1100
-x1, y1 = _x, 0
-x2, y2 = _x, 1000
-
-
 def test_split_add():
+    _x = 1100
+    x1, y1 = _x, 0
+    x2, y2 = _x, 1000
     sl = shapely.LineString(((x1, y1), (x2, y2)))
     known_splits = [shapely.Point((x2, y2))]
     known_adds = [sl]
     observed_splits, observed_adds = sgeop.geometry._split_add(sl, [], [])
     assert observed_splits == known_splits
     assert observed_adds == known_adds
-
-
-def test_last_point():
-    known = x2, y2
-    observed = sgeop.geometry._last_point(shapely.LineString(((x1, y1), (x2, y2))))
-    observed = observed.x, observed.y
-    assert observed == known
