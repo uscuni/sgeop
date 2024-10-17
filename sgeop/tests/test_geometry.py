@@ -225,3 +225,54 @@ def test_consolidate(tolerance):
         numpy.array([line_100_900, line_100_120, line_110_900]), tolerance
     )
     numpy.testing.assert_array_equal(observed, known)
+
+
+def test_prep_components():
+    line1 = shapely.LineString(((1, 1), (1, 2)))
+    line2 = shapely.LineString(((1, 2), (2, 2)))
+    line3 = shapely.LineString(((3, 0), (3, 3)))
+
+    known_labels = pandas.Series(
+        [0, 0, 1],
+        index=pandas.Index([0, 1, 2], name="focal"),
+        name="component labels",
+        dtype=numpy.int32,
+    )
+    known_counts = pandas.Series(
+        [2, 1],
+        index=pandas.Index([0, 1], name="component labels", dtype=numpy.int32),
+        name="count",
+        dtype=numpy.int64,
+    )
+    known_comps = geopandas.GeoDataFrame(
+        geometry=[
+            shapely.MultiLineString(
+                (
+                    shapely.LineString(((1, 1), (1, 2))),
+                    shapely.LineString(((1, 2), (2, 2))),
+                )
+            ),
+            shapely.LineString(((3, 0), (3, 3))),
+        ],
+        index=pandas.Index([0, 1], name="component labels", dtype=numpy.int32),
+    )
+
+    observed_labels, observed_counts, observed_comps = sgeop.geometry._prep_components(
+        [line1, line2, line3]
+    )
+
+    pandas.testing.assert_series_equal(observed_labels, known_labels)
+    pandas.testing.assert_series_equal(observed_counts, known_counts)
+    geopandas.testing.assert_geodataframe_equal(observed_comps, known_comps)
+
+
+def test_split_add():
+    _x = 1100
+    x1, y1 = _x, 0
+    x2, y2 = _x, 1000
+    sl = shapely.LineString(((x1, y1), (x2, y2)))
+    known_splits = [shapely.Point((x2, y2))]
+    known_adds = [sl]
+    observed_splits, observed_adds = sgeop.geometry._split_add(sl, [], [])
+    assert observed_splits == known_splits
+    assert observed_adds == known_adds
