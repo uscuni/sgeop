@@ -278,32 +278,57 @@ def test_split_add():
     assert observed_adds == known_adds
 
 
-def test_snap_to_targets_warn():
-    # edgelines
-    line1 = shapely.LineString(((100, 100), (1000, 100)))
-    line2 = shapely.LineString(((1000, 100), (1000, 1000)))
-    line3 = shapely.LineString(((100, 100), (100, 1000)))
-    line4 = shapely.LineString(((100, 1000), (1000, 1000)))
-    lines = [line1, line2, line3, line4]
-    # poly
-    poly = shapely.polygonize(lines).buffer(0)
-    # snap_to
-    snap_to_1 = (
-        geopandas.GeoSeries(lines).polygonize().extract_unique_points().explode()
-    )
-    # secondary_snap_to
-    snap_to_2 = (
-        geopandas.GeoSeries(lines)
-        .polygonize()
-        .buffer(10, join_style="bevel")
-        .extract_unique_points()
-        .explode()
-    )
+class TestSnapToTargets:
+    def setup_method(self):
+        # edgelines
+        line1 = shapely.LineString(((100, 100), (1000, 100)))
+        line2 = shapely.LineString(((1000, 100), (1000, 1000)))
+        line3 = shapely.LineString(((100, 100), (100, 1000)))
+        line4 = shapely.LineString(((100, 1000), (1000, 1000)))
+        self.lines = [line1, line2, line3, line4]
 
-    with pytest.warns(
-        UserWarning,
-        match="Could not create a connection as it would lead outside of the artifact.",
-    ):
-        sgeop.geometry.snap_to_targets(
-            lines, poly, snap_to=snap_to_1, secondary_snap_to=snap_to_2
+        # poly
+        self.poly = shapely.polygonize(self.lines).buffer(0)
+
+        # snap_to
+        self.snap_to_1 = (
+            geopandas.GeoSeries(self.lines)
+            .polygonize()
+            .extract_unique_points()
+            .explode()
         )
+
+    def test_warn(self):
+        with pytest.warns(
+            UserWarning,
+            match=(
+                "Could not create a connection as it would "
+                "lead outside of the artifact."
+            ),
+        ):
+            sgeop.geometry.snap_to_targets(
+                self.lines,
+                self.poly,
+                snap_to=self.snap_to_1,
+            )
+
+    def test_secondary(self):
+        known = ([None], [None])
+
+        line1_b = shapely.LineString(((500, 500), (1500, 500)))
+        line2_b = shapely.LineString(((1500, 500), (1500, 1500)))
+        line3_b = shapely.LineString(((500, 500), (500, 1500)))
+        line4_b = shapely.LineString(((500, 1500), (1500, 1500)))
+        lines_b = [line1_b, line2_b, line3_b, line4_b]
+        snap_to_2 = (
+            geopandas.GeoSeries(lines_b).polygonize().extract_unique_points().explode()
+        )
+
+        observed = sgeop.geometry.snap_to_targets(
+            self.lines + lines_b,
+            self.poly,
+            snap_to=self.snap_to_1,
+            secondary_snap_to=snap_to_2,
+        )
+
+        assert observed == known
