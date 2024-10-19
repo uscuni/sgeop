@@ -17,8 +17,7 @@ def continuity(
     Returns
     -------
     roads : geopandas.GeoDataFrame
-        The first eleThe input ``roads`` with additional columns where the original
-        index may be reset (see ``dedup`` keyword argument).
+        The input ``roads`` with additional columns describing COINS information.
     coins : momepy.COINS
         **This is not used in production.**
 
