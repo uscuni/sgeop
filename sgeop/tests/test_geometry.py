@@ -276,3 +276,34 @@ def test_split_add():
     observed_splits, observed_adds = sgeop.geometry._split_add(sl, [], [])
     assert observed_splits == known_splits
     assert observed_adds == known_adds
+
+
+def test_snap_to_targets_warn():
+    # edgelines
+    line1 = shapely.LineString(((100, 100), (1000, 100)))
+    line2 = shapely.LineString(((1000, 100), (1000, 1000)))
+    line3 = shapely.LineString(((100, 100), (100, 1000)))
+    line4 = shapely.LineString(((100, 1000), (1000, 1000)))
+    lines = [line1, line2, line3, line4]
+    # poly
+    poly = shapely.polygonize(lines).buffer(0)
+    # snap_to
+    snap_to_1 = (
+        geopandas.GeoSeries(lines).polygonize().extract_unique_points().explode()
+    )
+    # secondary_snap_to
+    snap_to_2 = (
+        geopandas.GeoSeries(lines)
+        .polygonize()
+        .buffer(10, join_style="bevel")
+        .extract_unique_points()
+        .explode()
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match="Could not create a connection as it would lead outside of the artifact.",
+    ):
+        sgeop.geometry.snap_to_targets(
+            lines, poly, snap_to=snap_to_1, secondary_snap_to=snap_to_2
+        )

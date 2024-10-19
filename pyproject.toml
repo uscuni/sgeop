@@ -79,3 +79,8 @@ exclude_lines = [
 ]
 ignore_errors = true
 omit = ["sgeop/tests/*"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    'ignore:Could not create a connection*:UserWarning',
+]
