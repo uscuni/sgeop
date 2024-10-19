@@ -49,7 +49,12 @@ def get_stroke_info(
     roads: geopandas.GeoSeries | geopandas.GeoDataFrame,
 ) -> tuple[list[int]]:
     """Generate information about strokes within ``artifacts`` and the
-    resulting lists can be assigned as columns to ``artifacts``.
+    resulting lists can be assigned as columns to ``artifacts``. Classifies
+    the strokes within the CES typology.
+
+        * 'continuing' strokes - continues before and after artifact.
+        * 'ending' strokes - continues only at one end.
+        * 'single' strokes - does not continue.
 
     Parameters
     ----------
@@ -63,11 +68,11 @@ def get_stroke_info(
     strokes : list[int]
         All strokes counts.
     c_ : list[int]
-        Mains counts.
+        Counts for 'continuing' strokes - continues before and after artifact.
     e_ : list[int]
-        Ends counts.
+        Counts for 'ending' strokes - continues only at one end.
     s_ : list[int]
-        Singles counts.
+        Counts for 'single' strokes - does not continue.
     """
     strokes = []
     c_ = []
