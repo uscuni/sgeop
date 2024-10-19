@@ -12,7 +12,7 @@ import sgeop
 @pytest.fixture
 def roads() -> geopandas.GeoDataFrame:
     """Toy set of 'roads' for testing only."""
-    inita = 1
+    inita = 2
     final = 8
     grid = list(range(inita, final))
     vert_points = list(zip(grid[:-1], grid[1:], strict=True))
@@ -33,14 +33,10 @@ def roads() -> geopandas.GeoDataFrame:
                 shapely.LineString(((4, 5), (3, 6))),
                 shapely.LineString(((3, 6), (4, 4))),
                 shapely.LineString(((6, 3), (5, 4))),
-                shapely.LineString(((1, 1), (3, 3))),
+                shapely.LineString(((3, 6), (3, 4))),
                 shapely.LineString(((5, 5), (6, 6))),
                 shapely.LineString(((6, 7), (7, 7))),
                 shapely.LineString(((7, 6), (7, 7))),
-                shapely.LineString(((1, 7), (2, 7))),
-                shapely.LineString(((2, 7), (2, 8))),
-                shapely.LineString(((2, 8), (1, 8))),
-                shapely.LineString(((1, 8), (1, 7))),
             ]
         )
     )
@@ -55,27 +51,21 @@ def test_continuity(roads):
             pandas.read_csv(
                 io.StringIO(
                     "geometry	coins_group	coins_end	coins_len	coins_count\n"
-                    "LINESTRING (2 1, 2 3)	0	True	9.650281539872886	5\n"
-                    "LINESTRING (3 2, 3 4)	1	False	7.414213562373095	4\n"
-                    "LINESTRING (4 3, 4 5)	0	False	9.650281539872886	5\n"
-                    "LINESTRING (5 4, 5 6)	2	True	10.0	6\n"
-                    "LINESTRING (6 5, 6 7)	2	False	10.0	6\n"
-                    "LINESTRING (1 2, 3 2)	1	True	7.414213562373095	4\n"
-                    "LINESTRING (2 3, 4 3)	0	False	9.650281539872886	5\n"
-                    "LINESTRING (3 4, 5 4)	1	False	7.414213562373095	4\n"
-                    "LINESTRING (4 5, 6 5)	2	True	10.0	6\n"
-                    "LINESTRING (5 6, 7 6)	2	False	10.0	6\n"
-                    "LINESTRING (4 5, 3 6)	0	False	9.650281539872886	5\n"
-                    "LINESTRING (3 6, 4 4)	0	True	9.650281539872886	5\n"
-                    "LINESTRING (6 3, 5 4)	1	True	7.414213562373095	4\n"
-                    "LINESTRING (1 1, 3 3)	3	True	2.8284271247461903	1\n"
-                    "LINESTRING (5 5, 6 6)	4	True	1.4142135623730951	1\n"
-                    "LINESTRING (6 7, 7 7)	2	False	10.0	6\n"
-                    "LINESTRING (7 6, 7 7)	2	False	10.0	6\n"
-                    "LINESTRING (1 7, 2 7)	5	False	4.0	4\n"
-                    "LINESTRING (2 7, 2 8)	5	False	4.0	4\n"
-                    "LINESTRING (2 8, 1 8)	5	False	4.0	4\n"
-                    "LINESTRING (1 8, 1 7)	5	False	4.0	4\n"
+                    "LINESTRING (3 2, 3 4)	0	True	4.0	2\n"
+                    "LINESTRING (4 3, 4 5)	1	True	4.0	2\n"
+                    "LINESTRING (5 4, 5 6)	2	True	11.414213562373096	7\n"
+                    "LINESTRING (6 5, 6 7)	2	False	11.414213562373096	7\n"
+                    "LINESTRING (2 3, 4 3)	1	True	4.0	2\n"
+                    "LINESTRING (3 4, 5 4)	3	True	3.414213562373095	2\n"
+                    "LINESTRING (4 5, 6 5)	2	False	11.414213562373096	7\n"
+                    "LINESTRING (5 6, 7 6)	2	False	11.414213562373096	7\n"
+                    "LINESTRING (4 5, 3 6)	2	True	11.414213562373096	7\n"
+                    "LINESTRING (3 6, 4 4)	4	True	2.23606797749979	1\n"
+                    "LINESTRING (6 3, 5 4)	3	True	3.414213562373095	2\n"
+                    "LINESTRING (3 6, 3 4)	0	True	4.0	2\n"
+                    "LINESTRING (5 5, 6 6)	5	True	1.4142135623730951	1\n"
+                    "LINESTRING (6 7, 7 7)	2	False	11.414213562373096	7\n"
+                    "LINESTRING (7 6, 7 7)	2	False	11.414213562373096	7\n"
                 ),
                 sep="\t",
             )
@@ -88,21 +78,21 @@ def test_continuity(roads):
     assert isinstance(observed_coins, momepy.COINS)
     assert observed_coins.already_merged
     assert observed_coins.merging_list == [
-        [0, 2, 6, 10, 11],
-        [1, 5, 7, 12],
-        [3, 4, 8, 9, 15, 16],
-        [13],
-        [14],
-        [17, 18, 19, 20],
+        [0, 11],
+        [1, 4],
+        [2, 3, 6, 7, 8, 13, 14],
+        [5, 10],
+        [9],
+        [12],
     ]
-    assert len(observed_coins.angle_pairs) == 40
+    assert len(observed_coins.angle_pairs) == 36
 
 
 def test_get_stroke_info(roads):
-    known_strokes = [0, 0, 0, 0, 1, 1, 1, 1, 1]
-    known_c_ = [0, 0, 0, 0, 0, 0, 0, 1, 0]
-    known_e_ = [0, 0, 0, 0, 1, 0, 0, 0, 0]
-    known_s_ = [0, 0, 0, 0, 0, 1, 1, 0, 1]
+    known_strokes = [0, 0, 2, 1, 1, 1, 2]
+    known_c_ = [0, 0, 0, 0, 0, 1, 0]
+    known_e_ = [0, 0, 1, 0, 0, 0, 1]
+    known_s_ = [0, 0, 1, 1, 1, 0, 1]
 
     observed = sgeop.continuity.get_stroke_info(
         sgeop.artifacts.get_artifacts(roads, threshold=1)[0],

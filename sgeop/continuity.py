@@ -61,14 +61,14 @@ def get_stroke_info(
 
     Returns
     -------
-    stroke_count : list[int]
-        ...
-    C_count : list[int]
-        ...
-    E_count : list[int]
-        ...
-    S_count : list[int]
-        ...
+    strokes : list[int]
+        All strokes counts.
+    c_ : list[int]
+        Mains counts.
+    e_ : list[int]
+        Ends counts.
+    s_ : list[int]
+        Singles counts.
     """
     strokes = []
     c_ = []
@@ -89,12 +89,13 @@ def get_stroke_info(
             mains = edges[~ecg.isin(ae_cg)].coins_group.nunique()
             visited = []
             for coins_count, group in zip(all_ends.coins_count, ae_cg, strict=True):
-                if (group not in visited) and (coins_count == (ecg == group).sum()):
-                    singles += 1
-                    visited.append(group)
-                elif group not in visited:
-                    ends += 1
-                    # do not add to visited as they may be disjoint within the artifact
+                if group not in visited:
+                    if coins_count == (ecg == group).sum():
+                        singles += 1
+                        visited.append(group)
+                    else:
+                        # do not add to visited -- may be disjoint within the artifact
+                        ends += 1
         strokes.append(ecg.nunique())
         c_.append(mains)
         e_.append(ends)
