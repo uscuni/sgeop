@@ -3,13 +3,36 @@ import momepy
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pyproj
 import shapely
 from scipy import sparse
 
 
-def split(split_points, cleaned_roads, crs, eps=1e-4):
-    # split lines on new nodes
-    split_points = gpd.GeoSeries(split_points)
+def split(
+    split_points: list | np.ndarray,
+    cleaned_roads: gpd.GeoSeries | gpd.GeoDataFrame,
+    crs: str | pyproj.CRS,
+    eps: float = 1e-4,
+) -> gpd.GeoSeries | gpd.GeoDataFrame:
+    """Split lines on new nodes.
+
+    Parameters
+    ----------
+    split_points : list | numpy.ndarray
+        Points to split the ``cleaned_roads``.
+    cleaned_roads : geopandas.GeoSeries | geopandas.GeoDataFrame
+        Line geometries to be split with ``split_points``.
+    crs : str | pyproj.CRS
+        Anything accepted by ``pyproj.CRS``.
+    eps : float
+        Tolerance epsilon for point snapping.
+
+    Returns
+    -------
+    geopandas.GeoSeries | geopandas.GeoDataFrame
+        Resultant split line geometries.
+    """
+    split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
         _, ix = cleaned_roads.sindex.nearest(split, max_distance=eps)
         edge = cleaned_roads.geometry.iloc[ix]
@@ -21,11 +44,7 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
-                    [
-                        cleaned_roads.drop(edge.index[0]),
-                        gdf_split,
-                    ],
-                    ignore_index=True,
+                    [cleaned_roads.drop(edge.index[0]), gdf_split], ignore_index=True,
                 )
         else:
             to_be_dropped = []
@@ -44,14 +63,17 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                 )
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
-                    [
-                        cleaned_roads.drop(to_be_dropped),
-                        gdf_split,
-                    ],
-                    ignore_index=True,
+                    [cleaned_roads.drop(to_be_dropped), gdf_split], ignore_index=True,
                 )
 
-    return cleaned_roads.reset_index(drop=True)
+    return (
+        cleaned_roads
+        .reset_index(drop=True)
+        .drop(columns=0, errors="ignore")
+        .set_geometry("geometry")
+        .set_crs(crs)
+        [["_status", "geometry"]]
+    )
 
 
 def _status(x):
