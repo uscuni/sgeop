@@ -278,7 +278,9 @@ def simplify_pairs(
     artifacts_planar = artifacts[artifacts.non_planar_cluster == 0]
 
     artifacts_w_info = artifacts.merge(
-        artifacts_planar.groupby("comp").apply(get_solution, roads=roads),
+        artifacts_planar.groupby("comp")[artifacts_planar.columns].apply(
+            get_solution, roads=roads
+        ),
         left_on="comp",
         right_index=True,
     )
