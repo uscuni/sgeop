@@ -64,15 +64,7 @@ def split(
                     ignore_index=True,
                 )
 
-    cleaned_roads = (
-        cleaned_roads.reset_index(drop=True)
-        .drop(columns=0, errors="ignore")
-        .set_geometry("geometry")
-        .set_crs(crs)
-    )
-    if "_status" in cleaned_roads.columns:
-        cleaned_roads = cleaned_roads[["_status", "geometry"]]
-    return cleaned_roads
+    return cleaned_roads.reset_index(drop=True)
 
 
 def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:

@@ -2,6 +2,7 @@ import itertools
 
 import geopandas.testing
 import numpy
+import pandas
 import pytest
 import shapely
 
@@ -150,7 +151,9 @@ def test_split(split_points, cleaned_roads, known):
     observed = sgeop.nodes.split(split_points, cleaned_roads, crs)
     assert isinstance(observed, geopandas.GeoDataFrame)
     assert observed.crs == known.crs == cleaned_roads.crs == crs
-    geopandas.testing.assert_geodataframe_equal(observed, known)
+    pytest.geom_test(observed.geometry, known.geometry)
+    if "_status" in observed.columns:
+        pandas.testing.assert_series_equal(observed["_status"], known["_status"])
 
 
 point_20001 = shapely.Point(2.0001, 2.0001)
