@@ -347,7 +347,7 @@ def one_remaining(
             snap_to=relevant_targets.geometry.iloc[target_nearest],  # snap to nearest
             max_segment_length=max_segment_length,
             buffer=limit_distance,  # TODO: figure out if we need this
-            limit_distance=limit_distance,
+            clip_limit=limit_distance,
             consolidation_tolerance=consolidation_tolerance,
         )
         split_points.extend(splitters)
@@ -373,7 +373,7 @@ def multiple_remaining(
         snap_to=snap_to,  # snap to relevant node targets
         max_segment_length=max_segment_length,
         secondary_snap_to=highest_hierarchy.geometry,
-        limit_distance=limit_distance,
+        clip_limit=limit_distance,
         # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=consolidation_tolerance,
     )
@@ -410,7 +410,7 @@ def one_remaining_c(
             poly=artifact.geometry,
             snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
             max_segment_length=max_segment_length,
-            limit_distance=limit_distance,
+            clip_limit=limit_distance,
             # buffer = highest_hierarchy.length.sum() * 1.2
             consolidation_tolerance=consolidation_tolerance,
         )
@@ -457,7 +457,7 @@ def loop(
         poly=artifact.geometry,
         snap_to=snap_to,
         max_segment_length=max_segment_length,
-        limit_distance=limit_distance,
+        clip_limit=limit_distance,
         # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=0,
     )
@@ -544,7 +544,7 @@ def n1_g1_identical(
         poly=geom,
         snap_to=[snap_to],
         max_segment_length=max_segment_length,
-        limit_distance=limit_distance,
+        clip_limit=limit_distance,
         # buffer = highest_hierarchy.length.sum() * 1.2
     )
     disjoint = shapely.disjoint(possible_dangle, dropped)
@@ -607,7 +607,7 @@ def nx_gx_identical(
             edges.geometry,  # use edges that are being dropped
             poly=geom,
             max_segment_length=max_segment_length,
-            limit_distance=limit_distance,
+            clip_limit=limit_distance,
             snap_to=relevant_nodes,
             consolidation_tolerance=consolidation_tolerance,
         )
@@ -759,7 +759,7 @@ def nx_gx(
                     poly=artifact.geometry,
                     snap_to=relevant_targets.geometry,  # snap to nodes
                     max_segment_length=max_segment_length,
-                    limit_distance=limit_distance,
+                    clip_limit=limit_distance,
                     # buffer = highest_hierarchy.length.sum() * 1.2
                     consolidation_tolerance=consolidation_tolerance,
                 )
@@ -779,7 +779,7 @@ def nx_gx(
                         poly=artifact.geometry,
                         snap_to=relevant_targets.geometry,  # snap to nodes
                         max_segment_length=max_segment_length,
-                        limit_distance=eps,
+                        clip_limit=eps,
                         # buffer = highest_hierarchy.length.sum() * 1.2
                         consolidation_tolerance=consolidation_tolerance,
                     )
@@ -1042,7 +1042,7 @@ def nx_gx_cluster(
         cluster_geom,
         snap_to=False,
         max_segment_length=max_segment_length,
-        limit_distance=1e-4,
+        clip_limit=1e-4,
         consolidation_tolerance=consolidation_tolerance,
     )
 

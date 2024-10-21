@@ -102,7 +102,7 @@ def voronoi_skeleton(
     max_segment_length: int = 1,
     buffer: None | float | int = None,
     secondary_snap_to: None | gpd.GeoSeries = None,
-    limit_distance: None | int = 2,
+    clip_limit: None | int = 2,
     consolidation_tolerance: None | float = None,
 ):
     """
@@ -124,8 +124,12 @@ def voronoi_skeleton(
         Optional custom buffer distance for dealing with Voronoi infinity issues.
     secondary_snap_to : None | gpd.GeoSeries = None
         Fall-back series of geometries that shall be connected to the skeleton.
-    limit_distance : None | int = 2
-        ...
+    clip_limit : None | int = 2
+        Following generation of the Voronoi linework, we clip to fit inside the polygon.
+        To ensure we get a space to make proper topological connections from the
+        linework to the actual points on the edge of the polygon, we clip using a
+        polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
     consolidation_tolerance : None | float = None
         Tolerance passed to node consolidation within the resulting skeleton.
         If ``None``, no consolidation happens.
@@ -171,9 +175,7 @@ def voronoi_skeleton(
 
     # determine the negative buffer distance to avoid overclipping of narrow polygons
     # this can still result in some missing links, but only in rare cases
-    dist = min(
-        [limit_distance, shapely.ops.polylabel(poly).distance(poly.boundary) * 0.4]
-    )
+    dist = min([clip_limit, shapely.ops.polylabel(poly).distance(poly.boundary) * 0.4])
     limit = poly.buffer(-dist)
 
     # drop ridges that are between points coming from the same line
