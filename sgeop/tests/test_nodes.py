@@ -18,12 +18,18 @@ point_6 = shapely.Point(6, 6)
 point_7 = shapely.Point(7, 7)
 point_8 = shapely.Point(8, 8)
 point_9 = shapely.Point(9, 9)
+point_24 = shapely.Point(2, 4)
+point_42 = shapely.Point(4, 2)
 
 split_list_2 = [point_2]
 split_array_2 = numpy.array(split_list_2)
 split_series_2 = geopandas.GeoSeries(split_array_2)
 
-split_list_2_3 = split_list_2 + [point_3]
+split_list_3 = [point_3]
+split_array_3 = numpy.array(split_list_3)
+split_series_3 = geopandas.GeoSeries(split_array_3)
+
+split_list_2_3 = split_list_2 + split_list_3
 split_array_2_3 = numpy.array(split_list_2_3)
 split_series_2_3 = geopandas.GeoSeries(split_array_2_3)
 
@@ -35,9 +41,9 @@ split_list_2_3_7_8 = split_list_2_3 + [point_7, point_8]
 split_array_2_3_7_8 = numpy.array(split_list_2_3_7_8)
 split_series_2_3_7_8 = geopandas.GeoSeries(split_array_2_3_7_8)
 
-
 line_1_4 = shapely.LineString((point_1, point_4))
 line_1_2 = shapely.LineString((point_1, point_2))
+line_1_3 = shapely.LineString((point_1, point_3))
 line_2_3 = shapely.LineString((point_2, point_3))
 line_2_4 = shapely.LineString((point_2, point_4))
 line_3_4 = shapely.LineString((point_3, point_4))
@@ -46,8 +52,11 @@ line_6_7 = shapely.LineString((point_6, point_7))
 line_6_8 = shapely.LineString((point_6, point_8))
 line_7_8 = shapely.LineString((point_7, point_8))
 line_8_9 = shapely.LineString((point_8, point_9))
+line_24_42 = shapely.LineString((point_24, point_42))
+line_24_3 = shapely.LineString((point_24, point_3))
+line_3_42 = shapely.LineString((point_3, point_42))
 
-cases = range(1, 8)
+cases = range(1, 9)
 types = ["list", "array", "series"]
 
 # case 1: 1 road input -- not split
@@ -98,6 +107,14 @@ known_7 = geopandas.GeoDataFrame(
     crs=crs,
 )
 
+# case 8: 2 roads input (perpendicular)-- 2 roads split once (intersection)
+cleaned_roads_8 = geopandas.GeoDataFrame(geometry=[line_1_4, line_24_42], crs=crs)
+known_8 = geopandas.GeoDataFrame(
+    {"_status": ["changed", "changed", "changed", "changed"]},
+    geometry=[line_1_3, line_3_4, line_24_3, line_3_42],
+    crs=crs,
+)
+
 
 @pytest.mark.parametrize(
     "split_points,cleaned_roads,known",
@@ -123,6 +140,9 @@ known_7 = geopandas.GeoDataFrame(
         [split_list_2_3_7_8, cleaned_roads_7, known_7],  # case 7
         [split_array_2_3_7_8, cleaned_roads_7, known_7],
         [split_series_2_3_7_8, cleaned_roads_7, known_7],
+        [split_list_3, cleaned_roads_8, known_8],  # case 8
+        [split_array_3, cleaned_roads_8, known_8],
+        [split_series_3, cleaned_roads_8, known_8],
     ),
     ids=[f"case{c}-{t}" for c, t in list(itertools.product(cases, types))],
 )
