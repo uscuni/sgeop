@@ -3,37 +3,53 @@ import momepy
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pyproj
 import shapely
 from scipy import sparse
 
 
-def split(split_points, cleaned_roads, crs, eps=1e-4):
-    # split lines on new nodes
-    split_points = gpd.GeoSeries(split_points)
+def split(
+    split_points: list | np.ndarray | gpd.GeoSeries,
+    cleaned_roads: gpd.GeoDataFrame,
+    crs: str | pyproj.CRS,
+    eps: float = 1e-4,
+) -> gpd.GeoSeries | gpd.GeoDataFrame:
+    """Split lines on new nodes.
+
+    Parameters
+    ----------
+    split_points : list | numpy.ndarray
+        Points to split the ``cleaned_roads``.
+    cleaned_roads : geopandas.GeoDataFrame
+        Line geometries to be split with ``split_points``.
+    crs : str | pyproj.CRS
+        Anything accepted by ``pyproj.CRS``.
+    eps : float
+        Tolerance epsilon for point snapping.
+
+    Returns
+    -------
+    geopandas.GeoSeries | geopandas.GeoDataFrame
+        Resultant split line geometries.
+    """
+    split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
         _, ix = cleaned_roads.sindex.nearest(split, max_distance=eps)
         edge = cleaned_roads.geometry.iloc[ix]
         if edge.shape[0] == 1:
-            snapped = shapely.snap(edge.item(), split, tolerance=eps)
-            lines_split = shapely.get_parts(shapely.ops.split(snapped, split))
-            lines_split = lines_split[~shapely.is_empty(lines_split)]
+            lines_split = _snap_n_split(edge.item(), split, eps)
             if lines_split.shape[0] > 1:
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
-                    [
-                        cleaned_roads.drop(edge.index[0]),
-                        gdf_split,
-                    ],
+                    [cleaned_roads.drop(edge.index[0]), gdf_split],
                     ignore_index=True,
                 )
         else:
             to_be_dropped = []
             to_be_added = []
             for i, e in edge.items():
-                snapped = shapely.snap(e, split, tolerance=eps)
-                lines_split = shapely.get_parts(shapely.ops.split(snapped, split))
-                lines_split = lines_split[~shapely.is_empty(lines_split)]
+                lines_split = _snap_n_split(e, split, eps)
                 if lines_split.shape[0] > 1:
                     to_be_dropped.append(i)
                     to_be_added.append(lines_split)
@@ -44,14 +60,18 @@ def split(split_points, cleaned_roads, crs, eps=1e-4):
                 )
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
-                    [
-                        cleaned_roads.drop(to_be_dropped),
-                        gdf_split,
-                    ],
+                    [cleaned_roads.drop(to_be_dropped), gdf_split],
                     ignore_index=True,
                 )
 
     return cleaned_roads.reset_index(drop=True)
+
+
+def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.ndarray:
+    """Snap point to edge and return lines to split."""
+    snapped = shapely.snap(e, s, tolerance=tol)
+    _lines_split = shapely.get_parts(shapely.ops.split(snapped, s))
+    return _lines_split[~shapely.is_empty(_lines_split)]
 
 
 def _status(x):
