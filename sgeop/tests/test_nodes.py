@@ -180,3 +180,77 @@ line_1_6 = shapely.LineString((point_1, point_6))
 def test_snap_n_split(edge, split_point, tol, known):
     observed = sgeop.nodes._snap_n_split(edge, split_point, tol)
     numpy.testing.assert_array_equal(observed, known)
+
+
+line_3_4 = shapely.LineString((point_3, point_4))
+line_4_5 = shapely.LineString((point_4, point_5))
+line_234 = shapely.LineString((point_2, point_3, point_4))
+
+edgeline_types_get_components = [
+    [line_1_2, line_2_4],
+    numpy.array([line_1_2, line_3_4]),
+    geopandas.GeoSeries([line_1_2, line_234]),
+    [line_1_2, line_2_4] + [line_4_5],
+]
+
+ignore_types_get_components = [
+    None,
+    point_2,
+    [point_2],
+    numpy.array([point_3]),
+    geopandas.GeoSeries([point_3]),
+]
+
+cases_types_get_components = [
+    list(c)
+    for c in itertools.product(
+        edgeline_types_get_components, ignore_types_get_components
+    )
+]
+
+known_get_components = [
+    [0, 0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [0, 0],
+    [0, 0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [0, 0],
+    [2.0, 3.0],
+    [2.0, 3.0],
+    [0, 0],
+    [0, 0],
+    [0, 0, 0],
+    [1.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0],
+    [0, 0, 0],
+    [0, 0, 0],
+]
+
+cases_get_components = [
+    (*arg12, arg3)
+    for arg12, arg3 in list(
+        zip(cases_types_get_components, known_get_components, strict=True)
+    )
+]
+
+
+t1_get_components = ["list", "ndarray", "GeoSeries", "list"]
+t2_get_components = ["NoneType", "Point", "list", "ndarray", "GeoSeries"]
+case_ids_get_components = [
+    "-".join(c) for c in itertools.product(t1_get_components, t2_get_components)
+]
+
+
+@pytest.mark.parametrize(
+    "edgelines,ignore,known",
+    cases_get_components,
+    ids=case_ids_get_components,
+)
+def test_get_components(edgelines, ignore, known):
+    observed = sgeop.nodes.get_components(edgelines, ignore=ignore)
+    numpy.testing.assert_array_equal(observed, known)

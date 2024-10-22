@@ -104,13 +104,13 @@ def voronoi_skeleton(
     secondary_snap_to: None | gpd.GeoSeries = None,
     clip_limit: None | int = 2,
     consolidation_tolerance: None | float = None,
-):
+) -> tuple[np.ndarray]:
     """
     Returns average geometry.
 
     Parameters
     ----------
-    lines : array_like
+    lines : list | numpy.ndarray | geopandas.GeoSeries
         LineStrings connected at endpoints. If ``poly`` is passed in, ``lines``
         must be a ``geopandas.GeoSeries``.
     poly : None | shapely.Polygon = None
@@ -136,8 +136,10 @@ def voronoi_skeleton(
 
     Returns
     -------
-    numpy.ndarray
+    edgelines : numpy.ndarray
         Array of averaged geometries.
+    splitters : numpy.ndarray
+        Split points.
     """
     if buffer is None:
         buffer = max_segment_length * 20
