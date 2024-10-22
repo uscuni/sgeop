@@ -82,7 +82,28 @@ def _status(x):
     return "changed"
 
 
-def get_components(edgelines, ignore=None):
+def get_components(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+    ignore: None | gpd.GeoSeries = None,
+) -> np.ndarray:
+    """Associate edges with connected component labels and return.
+
+    Parameters
+    ----------
+    edgelines : list | np.ndarray | gpd.GeoSeries
+        Collection of line objects.
+    ignore : None | gpd.GeoSeries = None
+        Nodes to ignore when labeling components.
+
+    Returns
+    -------
+    np.ndarray
+        Edge connected component labels.
+
+    Notes
+    -----
+    See [https://github.com/uscuni/sgeop/issues/56] for detailed explanation of output.
+    """
     edgelines = np.array(edgelines)
     start_points = shapely.get_point(edgelines, 0)
     end_points = shapely.get_point(edgelines, -1)
