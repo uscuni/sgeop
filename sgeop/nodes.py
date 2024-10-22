@@ -74,7 +74,8 @@ def _snap_n_split(e: shapely.LineString, s: shapely.Point, tol: float) -> np.nda
     return _lines_split[~shapely.is_empty(_lines_split)]
 
 
-def _status(x):
+def _status(x: pd.Series) -> str:
+    """Determine the status of edge line(s)."""
     if len(x) == 1:
         return x.iloc[0]
     if "new" in x:
