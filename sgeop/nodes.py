@@ -142,10 +142,25 @@ def get_components(
     return labels.values
 
 
-def weld_edges(edgelines, ignore=None):
-    """lightweight version of remove_false_nodes
+def weld_edges(
+    edgelines: list | np.ndarray | gpd.GeoSeries,
+    ignore: None | gpd.GeoSeries = None,
+) -> list:
+    """Combine lines sharing an endpoint (if only 2 lines share that point).
+    Lightweight version of ``remove_false_nodes()``.
 
-    optionally ignore some nodes - do not weld lines
+    Parameters
+    ----------
+    edgelines : list | np.ndarray | gpd.GeoSeries
+        Collection of line objects.
+    ignore : None | gpd.GeoSeries = None
+        Nodes to ignore when welding components.
+
+    Returns
+    -------
+    list | np.ndarray | gpd.GeoSeries
+        Resultant welded ``edgelines`` if more than 1 passed in, otherwise
+        the original ``edgelines`` object.
     """
     if len(edgelines) < 2:
         return edgelines
