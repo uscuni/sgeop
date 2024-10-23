@@ -1,3 +1,4 @@
+import copy
 import itertools
 
 import geopandas.testing
@@ -253,6 +254,55 @@ case_ids_get_components = [
 )
 def test_get_components(edgelines, ignore, known):
     observed = sgeop.nodes.get_components(edgelines, ignore=ignore)
+    numpy.testing.assert_array_equal(observed, known)
+
+
+line_124 = shapely.LineString((point_1, point_2, point_4))
+line_1234 = shapely.LineString((point_1, point_2, point_3, point_4))
+line_245 = shapely.LineString((point_2, point_4, point_5))
+line_1245 = shapely.LineString((point_1, point_2, point_4, point_5))
+
+known_weld_edges = [
+    [line_124],
+    [line_1_2, line_2_4],
+    [line_1_2, line_2_4],
+    [line_124],
+    [line_124],
+    [line_1_2, line_3_4],
+    [line_1_2, line_3_4],
+    [line_1_2, line_3_4],
+    [line_1_2, line_3_4],
+    [line_1_2, line_3_4],
+    [line_1234],
+    [line_1_2, line_234],
+    [line_1_2, line_234],
+    [line_1234],
+    [line_1234],
+    [line_1245],
+    [line_245, line_1_2],
+    [line_245, line_1_2],
+    [line_1245],
+    [line_1245],
+]
+
+cases_types_weld_edges = copy.deepcopy(cases_types_get_components)
+
+
+cases_weld_edges = [
+    (*arg12, arg3)
+    for arg12, arg3 in list(zip(cases_types_weld_edges, known_weld_edges, strict=True))
+]
+
+case_ids_weld_edges = copy.deepcopy(case_ids_get_components)
+
+
+@pytest.mark.parametrize(
+    "edgelines,ignore,known",
+    cases_weld_edges,
+    ids=case_ids_weld_edges,
+)
+def test_weld_edges(edgelines, ignore, known):
+    observed = sgeop.nodes.weld_edges(edgelines, ignore=ignore)
     numpy.testing.assert_array_equal(observed, known)
 
 
