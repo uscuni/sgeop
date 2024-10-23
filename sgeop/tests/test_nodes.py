@@ -2,6 +2,7 @@ import copy
 import itertools
 
 import geopandas.testing
+import momepy
 import numpy
 import pandas
 import pytest
@@ -389,4 +390,49 @@ class TestRemoveFalseNodes:
             geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series),
             aggfunc="last",
         )
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_momepy_suite(self):
+        false_network = geopandas.read_file(
+            momepy.datasets.get_path("tests"), layer="network"
+        )
+        false_network["vals"] = range(len(false_network))
+        fixed = momepy.remove_false_nodes(false_network)
+        assert len(fixed) == 56
+        assert isinstance(fixed, geopandas.GeoDataFrame)
+        assert false_network.crs.equals(fixed.crs)
+        assert sorted(false_network.columns) == sorted(fixed.columns)
+
+        # check loop order
+        expected = numpy.array(
+            [
+                [-727238.49292668, -1052817.28071986],
+                [-727253.1752498, -1052827.47329062],
+                [-727223.93217677, -1052829.47624082],
+                [-727238.49292668, -1052817.28071986],
+            ]
+        )
+        numpy.testing.assert_almost_equal(
+            numpy.array(fixed.loc[53].geometry.coords), expected
+        )
+
+        """
+        fixed_series = sgeop.nodes.remove_false_nodes(false_network.geometry)
+        assert len(fixed_series) == 56
+        assert isinstance(fixed_series, geopandas.GeoSeries)
+        assert self.false_network.crs.equals(fixed_series.crs)
+        """
+
+        multiindex = false_network.explode(index_parts=True)
+        fixed_multiindex = sgeop.nodes.remove_false_nodes(multiindex)
+        assert len(fixed_multiindex) == 56
+        assert isinstance(fixed, geopandas.GeoDataFrame)
+        assert sorted(false_network.columns) == sorted(fixed.columns)
+
+        # no node of a degree 2
+        df_streets = geopandas.read_file(
+            momepy.datasets.get_path("bubenec"), layer="streets"
+        )
+        known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
+        observed = sgeop.nodes.remove_false_nodes(known).reset_index(drop=True)
         geopandas.testing.assert_geodataframe_equal(observed, known)

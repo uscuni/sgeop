@@ -234,7 +234,7 @@ def remove_false_nodes(
         target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             node_coords = shapely.get_coordinates(target_nodes)
-            coords = np.array(loop_geom.coords)
+            coords = shapely.get_coordinates(loop_geom)
             new_start = (
                 node_coords[0]
                 if (node_coords[0] != coords[0]).all()
