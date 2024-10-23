@@ -397,7 +397,7 @@ class TestRemoveFalseNodes:
             momepy.datasets.get_path("tests"), layer="network"
         )
         false_network["vals"] = range(len(false_network))
-        fixed = momepy.remove_false_nodes(false_network)
+        fixed = sgeop.remove_false_nodes(false_network).reset_index(drop=True)
         assert len(fixed) == 56
         assert isinstance(fixed, geopandas.GeoDataFrame)
         assert false_network.crs.equals(fixed.crs)
@@ -413,15 +413,15 @@ class TestRemoveFalseNodes:
             ]
         )
         numpy.testing.assert_almost_equal(
-            numpy.array(fixed.loc[53].geometry.coords), expected
+            numpy.array(fixed.loc[55].geometry.coords), expected
         )
 
-        """
-        fixed_series = sgeop.nodes.remove_false_nodes(false_network.geometry)
+        fixed_series = sgeop.nodes.remove_false_nodes(
+            false_network.geometry
+        ).reset_index(drop=True)
         assert len(fixed_series) == 56
-        assert isinstance(fixed_series, geopandas.GeoSeries)
-        assert self.false_network.crs.equals(fixed_series.crs)
-        """
+        assert isinstance(fixed_series, geopandas.GeoDataFrame)
+        assert false_network.crs.equals(fixed_series.crs)
 
         multiindex = false_network.explode(index_parts=True)
         fixed_multiindex = sgeop.nodes.remove_false_nodes(multiindex)
