@@ -157,19 +157,31 @@ def weld_edges(edgelines, ignore=None):
     ).tolist()
 
 
-def remove_false_nodes(gdf, aggfunc="first", **kwargs):
-    """Reimplementation of momepy.remove_false_nodes that preserves attributes
+def remove_false_nodes(
+    gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str = "first", **kwargs
+):
+    """Reimplementation of ``momepy.remove_false_nodes()`` that preserves attributes.
 
     Parameters
     ----------
-    gdf : _type_
-        _description_
+    gdf : gpd.GeoSeries | gpd.GeoDataFrame
+        Input edgelines process.
+    aggfunc : str = "first"
+        Aggregate function for processing non-spatial component.
+    **kwargs
+        Keyword arguments for ``aggfunc``.
 
     Returns
     -------
-    _type_
-        _description_
+    gpd.GeoSeries | gpd.GeoDataFrame
+       The original input ``gdf`` if only 1 edgeline, otherwise the processed
+       edgeline without interstitial nodes.
     """
+
+    def merge_geometries(block: gpd.GeoSeries) -> shapely.LineString:
+        """Helper in processing the spatial component."""
+        return shapely.line_merge(shapely.GeometryCollection(block.values))
+
     if len(gdf) < 2:
         return gdf
 
@@ -184,14 +196,11 @@ def remove_false_nodes(gdf, aggfunc="first", **kwargs):
     aggregated_data.columns = aggregated_data.columns.to_flat_index()
 
     # Process spatial component
-    def merge_geometries(block):
-        merged_geom = shapely.line_merge(shapely.GeometryCollection(block.values))
-        return merged_geom
-
     g = gdf.groupby(group_keys=False, by=labels)[gdf.geometry.name].agg(
         merge_geometries
     )
     aggregated_geometry = gpd.GeoDataFrame(g, geometry=gdf.geometry.name, crs=gdf.crs)
+
     # Recombine
     aggregated = aggregated_geometry.join(aggregated_data)
 
