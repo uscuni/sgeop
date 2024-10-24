@@ -180,7 +180,8 @@ def remove_false_nodes(
     Parameters
     ----------
     gdf : gpd.GeoSeries | gpd.GeoDataFrame
-        Input edgelines process.
+        Input edgelines process. If any edges are ``MultiLineString`` they
+        will be exploded into constituent ``LineString`` components.
     aggfunc : str = "first"
         Aggregate function for processing non-spatial component.
     **kwargs
@@ -191,6 +192,10 @@ def remove_false_nodes(
     gpd.GeoSeries | gpd.GeoDataFrame
        The original input ``gdf`` if only 1 edgeline, otherwise the processed
        edgeline without interstitial nodes.
+
+    Notes
+    -----
+    Any 3D geometries are (potentially) downcast in loops.
     """
 
     def merge_geometries(block: gpd.GeoSeries) -> shapely.LineString:
