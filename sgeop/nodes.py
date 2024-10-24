@@ -203,9 +203,7 @@ def remove_false_nodes(
     if isinstance(gdf, gpd.GeoSeries):
         gdf = gdf.to_frame("geometry")
 
-    # explode to avoid MultiLineStrings
-    # reset index due to the bug in GeoPandas explode
-    gdf = gdf.reset_index(drop=True).explode(ignore_index=True)
+    gdf = gdf.explode(ignore_index=True)
 
     labels = get_components(gdf.geometry)
 
