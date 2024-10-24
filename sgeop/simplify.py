@@ -35,10 +35,27 @@ def simplify_singletons(
     compute_coins=True,
     min_dangle_length=10,
     eps=1e-4,
-    limit_distance=2,
+    clip_limit: int = 2,
     simplification_factor=2,
     consolidation_tolerance=10,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # Get nodes from the network.
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
@@ -105,7 +122,7 @@ def simplify_singletons(
                     to_add=to_add,
                     geom=artifact.geometry,
                     max_segment_length=max_segment_length,
-                    limit_distance=limit_distance,
+                    clip_limit=clip_limit,
                 )
 
             elif (artifact.node_count > 1) and (len(set(artifact.ces_type[1:])) == 1):
@@ -118,7 +135,7 @@ def simplify_singletons(
                     nodes=nodes,
                     angle=75,
                     max_segment_length=max_segment_length,
-                    limit_distance=limit_distance,
+                    clip_limit=clip_limit,
                     consolidation_tolerance=consolidation_tolerance,
                 )
 
@@ -132,7 +149,7 @@ def simplify_singletons(
                     split_points=split_points,
                     nodes=nodes,
                     max_segment_length=max_segment_length,
-                    limit_distance=limit_distance,
+                    clip_limit=clip_limit,
                     min_dangle_length=min_dangle_length,
                     consolidation_tolerance=consolidation_tolerance,
                 )
@@ -178,10 +195,27 @@ def simplify_pairs(
     roads,
     max_segment_length=1,
     min_dangle_length=20,
-    limit_distance=2,
+    clip_limit: int = 2,
     simplification_factor=2,
     consolidation_tolerance=10,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # Get nodes from the network.
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
@@ -287,7 +321,7 @@ def simplify_pairs(
             pd.concat([merged_pairs, first]),
             roads_cleaned,
             max_segment_length=max_segment_length,
-            limit_distance=limit_distance,
+            clip_limit=clip_limit,
             compute_coins=False,
             min_dangle_length=min_dangle_length,
             simplification_factor=simplification_factor,
@@ -298,7 +332,7 @@ def simplify_pairs(
                 second,
                 roads_cleaned,
                 max_segment_length=max_segment_length,
-                limit_distance=limit_distance,
+                clip_limit=clip_limit,
                 compute_coins=True,
                 min_dangle_length=min_dangle_length,
                 simplification_factor=simplification_factor,
@@ -439,7 +473,7 @@ def simplify_network(
     *,
     max_segment_length=1,
     min_dangle_length=20,
-    limit_distance=2,
+    clip_limit: int = 2,
     simplification_factor=2,
     consolidation_tolerance=10,
     artifact_threshold=None,
@@ -453,6 +487,23 @@ def simplify_network(
     exclusion_mask=None,
     predicate="intersects",
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
@@ -477,7 +528,7 @@ def simplify_network(
         artifacts,
         max_segment_length=max_segment_length,
         min_dangle_length=min_dangle_length,
-        limit_distance=limit_distance,
+        clip_limit=clip_limit,
         simplification_factor=simplification_factor,
         consolidation_tolerance=consolidation_tolerance,
         eps=eps,
@@ -507,7 +558,7 @@ def simplify_network(
         artifacts,
         max_segment_length=max_segment_length,
         min_dangle_length=min_dangle_length,
-        limit_distance=limit_distance,
+        clip_limit=clip_limit,
         simplification_factor=simplification_factor,
         consolidation_tolerance=consolidation_tolerance,
         eps=eps,
@@ -525,11 +576,28 @@ def simplify_loop(
     artifacts,
     max_segment_length=1,
     min_dangle_length=20,
-    limit_distance=2,
+    clip_limit: int = 2,
     simplification_factor=2,
     consolidation_tolerance=10,
     eps=1e-4,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # Remove edges fully within the artifact (dangles).
     _, r_idx = roads.sindex.query(artifacts.geometry, predicate="contains")
     roads = remove_false_nodes(roads.drop(roads.index[r_idx]))  # drop could cause new
@@ -563,7 +631,7 @@ def simplify_loop(
             roads,
             max_segment_length=max_segment_length,
             min_dangle_length=min_dangle_length,
-            limit_distance=limit_distance,
+            clip_limit=clip_limit,
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
         )
