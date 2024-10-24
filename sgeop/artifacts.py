@@ -323,9 +323,26 @@ def one_remaining(
     es_mask,
     max_segment_length,
     split_points,
-    limit_distance,
+    clip_limit: int,
     consolidation_tolerance,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # find the nearest relevant target
     remaining_nearest, target_nearest = relevant_targets.sindex.nearest(
         remaining_nodes.geometry, return_all=False
@@ -346,8 +363,8 @@ def one_remaining(
             poly=artifact.geometry,
             snap_to=relevant_targets.geometry.iloc[target_nearest],  # snap to nearest
             max_segment_length=max_segment_length,
-            buffer=limit_distance,  # TODO: figure out if we need this
-            clip_limit=limit_distance,
+            buffer=clip_limit,  # TODO: figure out if we need this
+            clip_limit=clip_limit,
             consolidation_tolerance=consolidation_tolerance,
         )
         split_points.extend(splitters)
@@ -363,9 +380,26 @@ def multiple_remaining(
     highest_hierarchy,
     split_points,
     snap_to,
-    limit_distance,
+    clip_limit: int,
     consolidation_tolerance,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # use skeleton to ensure all nodes are naturally connected
     new_connections, splitters = voronoi_skeleton(
         edges[es_mask].geometry,  # use edges that are being dropped
@@ -373,7 +407,7 @@ def multiple_remaining(
         snap_to=snap_to,  # snap to relevant node targets
         max_segment_length=max_segment_length,
         secondary_snap_to=highest_hierarchy.geometry,
-        clip_limit=limit_distance,
+        clip_limit=clip_limit,
         # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=consolidation_tolerance,
     )
@@ -390,9 +424,26 @@ def one_remaining_c(
     es_mask,
     max_segment_length,
     split_points,
-    limit_distance,
+    clip_limit: int,
     consolidation_tolerance,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # create a new connection as the shortest straight line to any C
     new_connections = shapely.shortest_line(
         remaining_nodes.geometry.values,
@@ -410,7 +461,7 @@ def one_remaining_c(
             poly=artifact.geometry,
             snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
             max_segment_length=max_segment_length,
-            clip_limit=limit_distance,
+            clip_limit=clip_limit,
             # buffer = highest_hierarchy.length.sum() * 1.2
             consolidation_tolerance=consolidation_tolerance,
         )
@@ -425,11 +476,28 @@ def loop(
     highest_hierarchy,
     artifact,
     max_segment_length,
-    limit_distance,
+    clip_limit: int,
     split_points,
     min_dangle_length,
     eps=1e-4,
 ):
+    """
+
+    Parameters
+    ----------
+
+    clip_limit : int
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
+    """
+
     # check if we need to add a deadend to represent the space
     to_add = []
     dropped = edges[es_mask].geometry.item()
@@ -457,7 +525,7 @@ def loop(
         poly=artifact.geometry,
         snap_to=snap_to,
         max_segment_length=max_segment_length,
-        clip_limit=limit_distance,
+        clip_limit=clip_limit,
         # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=0,
     )
@@ -514,7 +582,7 @@ def n1_g1_identical(
     geom,
     max_segment_length=1,
     min_dangle_length=10,
-    limit_distance=2,
+    clip_limit: int = 2,
 ):
     """If there is only 1 continuity group {C, E, S} and only 1 node
 
@@ -526,7 +594,21 @@ def n1_g1_identical(
         geometries forming the artifact
     to_drop : list
         list collecting geometries to be dropped
+
+
+
+    clip_limit : None | int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
     """
+
     to_drop.append(edges.index[0])
     dropped = edges.geometry.item()
 
@@ -544,7 +626,7 @@ def n1_g1_identical(
         poly=geom,
         snap_to=[snap_to],
         max_segment_length=max_segment_length,
-        clip_limit=limit_distance,
+        clip_limit=clip_limit,
         # buffer = highest_hierarchy.length.sum() * 1.2
     )
     disjoint = shapely.disjoint(possible_dangle, dropped)
@@ -572,7 +654,7 @@ def nx_gx_identical(
     nodes,
     angle,
     max_segment_length=1,
-    limit_distance=2,
+    clip_limit: int = 2,
     consolidation_tolerance=10,
     eps=1e-4,
 ):
@@ -592,6 +674,20 @@ def nx_gx_identical(
         list collecting geometries to be added
     nodes : GeoSeries
         nodes forming the artifact
+
+
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+
+    Returns
+    -------
+
     """
     centroid = geom.centroid
     relevant_nodes = nodes.geometry.iloc[
@@ -607,7 +703,7 @@ def nx_gx_identical(
             edges.geometry,  # use edges that are being dropped
             poly=geom,
             max_segment_length=max_segment_length,
-            clip_limit=limit_distance,
+            clip_limit=clip_limit,
             snap_to=relevant_nodes,
             consolidation_tolerance=consolidation_tolerance,
         )
@@ -637,7 +733,7 @@ def nx_gx(
     split_points,
     nodes,
     max_segment_length=1,
-    limit_distance=2,
+    clip_limit: int = 2,
     min_dangle_length=10,
     consolidation_tolerance=10,
     eps=1e-4,
@@ -652,6 +748,21 @@ def nx_gx(
     using skeleton if that is not inside or there are 3 or more components.
 
     Connection point should ideally be an existing nearest node with degree 4 or above.
+
+
+    Parameters
+    ----------
+
+    clip_limit : int = 2
+        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
+        we clip to fit inside the polygon. To ensure we get a space to make proper
+        topological connections from the linework to the actual points on the edge of
+        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
+        or the radius of maximum inscribed circle, whichever is smaller.
+
+    Returns
+    -------
+
     """
 
     # filter ends
@@ -759,7 +870,7 @@ def nx_gx(
                     poly=artifact.geometry,
                     snap_to=relevant_targets.geometry,  # snap to nodes
                     max_segment_length=max_segment_length,
-                    clip_limit=limit_distance,
+                    clip_limit=clip_limit,
                     # buffer = highest_hierarchy.length.sum() * 1.2
                     consolidation_tolerance=consolidation_tolerance,
                 )
@@ -838,7 +949,7 @@ def nx_gx(
                     es_mask,
                     max_segment_length,
                     split_points,
-                    limit_distance,
+                    clip_limit,
                     consolidation_tolerance,
                 )
 
@@ -855,7 +966,7 @@ def nx_gx(
                     highest_hierarchy,
                     split_points,
                     relevant_targets.geometry,
-                    limit_distance,
+                    clip_limit,
                     consolidation_tolerance,
                 )
 
@@ -876,7 +987,7 @@ def nx_gx(
                     es_mask,
                     max_segment_length,
                     split_points,
-                    limit_distance,
+                    clip_limit,
                     consolidation_tolerance,
                 )
 
@@ -893,7 +1004,7 @@ def nx_gx(
                     highest_hierarchy,
                     split_points,
                     highest_hierarchy.dissolve("coins_group").geometry,
-                    limit_distance,
+                    clip_limit,
                     consolidation_tolerance,
                 )
 
@@ -929,7 +1040,7 @@ def nx_gx(
                 highest_hierarchy,
                 artifact,
                 max_segment_length,
-                limit_distance,
+                clip_limit,
                 split_points,
                 min_dangle_length,
             )
