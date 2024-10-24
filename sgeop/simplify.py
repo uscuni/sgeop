@@ -173,65 +173,6 @@ def simplify_singletons(
         return cleaned_roads
 
 
-def simplify_clusters(
-    artifacts,
-    roads,
-    max_segment_length=1,
-    eps=1e-4,
-    simplification_factor=2,
-    min_dangle_length=20,
-    consolidation_tolerance=10,
-):
-    # Get nodes from the network.
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
-
-    # collect changes
-    to_drop = []
-    to_add = []
-
-    for _, artifact in artifacts.groupby("comp"):
-        # get artifact cluster polygon
-        cluster_geom = artifact.union_all()
-        # get edges relevant for an artifact
-        edges = roads.iloc[
-            roads.sindex.query(cluster_geom, predicate="intersects")
-        ].copy()
-
-        nx_gx_cluster(
-            edges=edges,
-            cluster_geom=cluster_geom,
-            nodes=nodes,
-            to_drop=to_drop,
-            to_add=to_add,
-            eps=eps,
-            max_segment_length=max_segment_length,
-            min_dangle_length=min_dangle_length,
-            consolidation_tolerance=consolidation_tolerance,
-        )
-
-    cleaned_roads = roads.drop(to_drop)
-
-    # create new roads with fixed geometry. Note that to_add and to_drop lists shall be
-    # global and this step should happen only once, not for every artifact
-    new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
-    new["_status"] = "new"
-    new["geometry"] = new.line_merge().simplify(
-        max_segment_length * simplification_factor
-    )
-    new_roads = pd.concat(
-        [
-            cleaned_roads,
-            new,
-        ],
-        ignore_index=True,
-    ).explode()
-    new_roads = remove_false_nodes(
-        new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
-    ).drop_duplicates("geometry")
-
-    return new_roads
-
-
 def simplify_pairs(
     artifacts,
     roads,
@@ -373,6 +314,65 @@ def simplify_pairs(
             consolidation_tolerance=consolidation_tolerance,
         )
     return roads_cleaned
+
+
+def simplify_clusters(
+    artifacts,
+    roads,
+    max_segment_length=1,
+    eps=1e-4,
+    simplification_factor=2,
+    min_dangle_length=20,
+    consolidation_tolerance=10,
+):
+    # Get nodes from the network.
+    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+
+    # collect changes
+    to_drop = []
+    to_add = []
+
+    for _, artifact in artifacts.groupby("comp"):
+        # get artifact cluster polygon
+        cluster_geom = artifact.union_all()
+        # get edges relevant for an artifact
+        edges = roads.iloc[
+            roads.sindex.query(cluster_geom, predicate="intersects")
+        ].copy()
+
+        nx_gx_cluster(
+            edges=edges,
+            cluster_geom=cluster_geom,
+            nodes=nodes,
+            to_drop=to_drop,
+            to_add=to_add,
+            eps=eps,
+            max_segment_length=max_segment_length,
+            min_dangle_length=min_dangle_length,
+            consolidation_tolerance=consolidation_tolerance,
+        )
+
+    cleaned_roads = roads.drop(to_drop)
+
+    # create new roads with fixed geometry. Note that to_add and to_drop lists shall be
+    # global and this step should happen only once, not for every artifact
+    new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
+    new["_status"] = "new"
+    new["geometry"] = new.line_merge().simplify(
+        max_segment_length * simplification_factor
+    )
+    new_roads = pd.concat(
+        [
+            cleaned_roads,
+            new,
+        ],
+        ignore_index=True,
+    ).explode()
+    new_roads = remove_false_nodes(
+        new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
+    ).drop_duplicates("geometry")
+
+    return new_roads
 
 
 def get_type(edges, shared_edge):

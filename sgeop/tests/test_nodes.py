@@ -2,6 +2,7 @@ import copy
 import itertools
 
 import geopandas.testing
+import momepy
 import numpy
 import pandas
 import pytest
@@ -304,3 +305,134 @@ case_ids_weld_edges = copy.deepcopy(case_ids_get_components)
 def test_weld_edges(edgelines, ignore, known):
     observed = sgeop.nodes.weld_edges(edgelines, ignore=ignore)
     numpy.testing.assert_array_equal(observed, known)
+
+
+class TestRemoveFalseNodes:
+    def setup_method(self):
+        p10 = shapely.Point(1, 0)
+        p20 = shapely.Point(2, 0)
+        p30 = shapely.Point(3, 0)
+        p40 = shapely.Point(4, 0)
+        p50 = shapely.Point(5, 0)
+        p21 = shapely.Point(2, 1)
+        p32 = shapely.Point(3, 2)
+        p41 = shapely.Point(4, 1)
+
+        self.line1020 = shapely.LineString((p10, p20))
+        self.line2030 = shapely.LineString((p20, p30))
+        self.line3040 = shapely.LineString((p30, p40))
+        self.line4050 = shapely.LineString((p40, p50))
+        self.line3021 = shapely.LineString((p30, p21))
+        self.line2132 = shapely.LineString((p21, p32))
+        self.line4132 = shapely.LineString((p41, p32))
+        self.line3041 = shapely.LineString((p30, p41))
+        self.attrs = ["cat"] * 3 + ["dog"] * 3 + ["eel"] * 2
+
+        self.series = geopandas.GeoSeries(
+            [
+                self.line1020,
+                self.line2030,
+                self.line3040,
+                self.line4050,
+                self.line3021,
+                self.line2132,
+                self.line4132,
+                self.line3041,
+            ]
+        )
+
+        self.line102030 = shapely.LineString((p10, p20, p30))
+        self.line304050 = shapely.LineString((p30, p40, p50))
+        self.line3041323130 = shapely.LineString((p30, p41, p32, p21, p30))
+
+        self.known_geoms = [
+            self.line102030,
+            self.line3041323130,
+            self.line304050,
+        ]
+
+    def test_single_series(self):
+        one_in_series = self.series[:0].copy()
+        known = one_in_series
+        observed = sgeop.nodes.remove_false_nodes(one_in_series)
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+    def test_series(self):
+        known = geopandas.GeoDataFrame(geometry=self.known_geoms)
+        observed = sgeop.nodes.remove_false_nodes(self.series)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_frame(self):
+        known = geopandas.GeoDataFrame(geometry=self.known_geoms)
+        observed = sgeop.nodes.remove_false_nodes(
+            geopandas.GeoDataFrame(geometry=self.series)
+        )
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_frame_attrs_first(self):
+        known = geopandas.GeoDataFrame(
+            {"animal": ["cat", "dog", "cat"]},
+            geometry=self.known_geoms,
+            columns=["geometry", "animal"],
+        )
+        observed = sgeop.nodes.remove_false_nodes(
+            geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series)
+        )
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_frame_attrs_last(self):
+        known = geopandas.GeoDataFrame(
+            {"animal": ["cat", "eel", "dog"]},
+            geometry=self.known_geoms,
+            columns=["geometry", "animal"],
+        )
+        observed = sgeop.nodes.remove_false_nodes(
+            geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series),
+            aggfunc="last",
+        )
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_momepy_suite(self):
+        false_network = geopandas.read_file(
+            momepy.datasets.get_path("tests"), layer="network"
+        )
+        false_network["vals"] = range(len(false_network))
+        fixed = sgeop.remove_false_nodes(false_network).reset_index(drop=True)
+        assert len(fixed) == 56
+        assert isinstance(fixed, geopandas.GeoDataFrame)
+        assert false_network.crs.equals(fixed.crs)
+        assert sorted(false_network.columns) == sorted(fixed.columns)
+
+        # check loop order
+        expected = numpy.array(
+            [
+                [-727238.49292668, -1052817.28071986],
+                [-727253.1752498, -1052827.47329062],
+                [-727223.93217677, -1052829.47624082],
+                [-727238.49292668, -1052817.28071986],
+            ]
+        )
+        numpy.testing.assert_almost_equal(
+            numpy.array(fixed.loc[55].geometry.coords), expected
+        )
+
+        fixed_series = sgeop.nodes.remove_false_nodes(
+            false_network.geometry
+        ).reset_index(drop=True)
+        assert len(fixed_series) == 56
+        assert isinstance(fixed_series, geopandas.GeoDataFrame)
+        assert false_network.crs.equals(fixed_series.crs)
+
+        multiindex = false_network.explode(index_parts=True)
+        fixed_multiindex = sgeop.nodes.remove_false_nodes(multiindex)
+        assert len(fixed_multiindex) == 56
+        assert isinstance(fixed, geopandas.GeoDataFrame)
+        assert sorted(false_network.columns) == sorted(fixed.columns)
+
+        # no node of a degree 2
+        df_streets = geopandas.read_file(
+            momepy.datasets.get_path("bubenec"), layer="streets"
+        )
+        known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
+        observed = sgeop.nodes.remove_false_nodes(known).reset_index(drop=True)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
