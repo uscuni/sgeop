@@ -172,24 +172,43 @@ def weld_edges(
     ).tolist()
 
 
-def remove_false_nodes(gdf, aggfunc="first", **kwargs):
-    """Reimplementation of momepy.remove_false_nodes that preserves attributes
+def remove_false_nodes(
+    gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str = "first", **kwargs
+):
+    """Reimplementation of ``momepy.remove_false_nodes()`` that preserves attributes.
 
     Parameters
     ----------
-    gdf : _type_
-        _description_
+    gdf : gpd.GeoSeries | gpd.GeoDataFrame
+        Input edgelines process. If any edges are ``MultiLineString`` they
+        will be exploded into constituent ``LineString`` components.
+    aggfunc : str = "first"
+        Aggregate function for processing non-spatial component.
+    **kwargs
+        Keyword arguments for ``aggfunc``.
 
     Returns
     -------
-    _type_
-        _description_
+    gpd.GeoSeries | gpd.GeoDataFrame
+       The original input ``gdf`` if only 1 edgeline, otherwise the processed
+       edgeline without interstitial nodes.
+
+    Notes
+    -----
+    Any 3D geometries are (potentially) downcast in loops.
     """
+
+    def merge_geometries(block: gpd.GeoSeries) -> shapely.LineString:
+        """Helper in processing the spatial component."""
+        return shapely.line_merge(shapely.GeometryCollection(block.values))
+
     if len(gdf) < 2:
         return gdf
 
     if isinstance(gdf, gpd.GeoSeries):
         gdf = gdf.to_frame("geometry")
+
+    gdf = gdf.explode(ignore_index=True)
 
     labels = get_components(gdf.geometry)
 
@@ -199,14 +218,11 @@ def remove_false_nodes(gdf, aggfunc="first", **kwargs):
     aggregated_data.columns = aggregated_data.columns.to_flat_index()
 
     # Process spatial component
-    def merge_geometries(block):
-        merged_geom = shapely.line_merge(shapely.GeometryCollection(block.values))
-        return merged_geom
-
     g = gdf.groupby(group_keys=False, by=labels)[gdf.geometry.name].agg(
         merge_geometries
     )
     aggregated_geometry = gpd.GeoDataFrame(g, geometry=gdf.geometry.name, crs=gdf.crs)
+
     # Recombine
     aggregated = aggregated_geometry.join(aggregated_data)
 
@@ -225,7 +241,7 @@ def remove_false_nodes(gdf, aggfunc="first", **kwargs):
         target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
             node_coords = shapely.get_coordinates(target_nodes)
-            coords = np.array(loop_geom.coords)
+            coords = shapely.get_coordinates(loop_geom)
             new_start = (
                 node_coords[0]
                 if (node_coords[0] != coords[0]).all()
