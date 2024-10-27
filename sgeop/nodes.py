@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 import shapely
+from geopandas.testing import assert_geodataframe_equal
 from scipy import sparse
 
 
@@ -257,24 +258,51 @@ def remove_false_nodes(
     return aggregated
 
 
-def fix_topology(roads, eps=1e-4, **kwargs):
-    """Fix road network topology
+def fix_topology(
+    roads: gpd.GeoDataFrame,
+    eps: float = 1e-4,
+    **kwargs,
+) -> tuple[gpd.GeoDataFrame, bool]:
+    """Fix road network topology. This ensures correct topology of the network by:
 
-    This ensures correct topology of the network by:
+        1.  Adding potentially missing nodes...
+                on intersections of individual LineString endpoints
+                with the remaining network. The idea behind is that
+                if a line ends on an intersection with another, there
+                should be a node on both of them.
+        2. Removing nodes of degree 2...
+                that have no meaning in the network used within our framework.
+        3. Removing duplicated geometries (irrespective of orientation).
 
-    1.  adding potentially missing nodes
-    on intersections of individual LineString endpoints with the remaining network. The
-    idea behind is that if a line ends on an intersection with another, there should be
-    a node on both of them.
+    Parameters
+    ----------
+    roads : geopandas.GeoDataFrame
+        Input LineString geometries.
+    eps : float = 1e-4
+        Tolerance epsilon for point snapping passed into ``nodes.split()``.
+    **kwargs : dict
+        Key word arguments passed into ``remove_false_nodes()``.
 
-    2. removing nodes of degree 2 that have no meaning in the network
-    used within our framework.
-
-    3. removing duplicated geometries (irrespective of orientation).
+    Returns
+    -------
+    tuple[gpd.GeoDataFrame, bool]
+        The first element are the input roads that either (a) were already simplified
+        or (b) now have fixed topology and are ready to proceed through the
+        simplification algorithm. The seconds element is a flag for either
+        case (a) or (b). If (a) the simplification algorithm will terminate early.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_false_nodes(roads_w_nodes, **kwargs)
+
+    try:
+        assert_geodataframe_equal(roads, roads_w_nodes)
+        # topology does not need further fixing -- roads already simplified
+        fixed = True
+        return roads_w_nodes, fixed
+    except AssertionError:
+        fixed = False
+
+    return remove_false_nodes(roads_w_nodes, **kwargs), fixed
 
 
 def induce_nodes(roads, eps=1e-4):
