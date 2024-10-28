@@ -436,3 +436,70 @@ class TestRemoveFalseNodes:
         known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
         observed = sgeop.nodes.remove_false_nodes(known).reset_index(drop=True)
         geopandas.testing.assert_geodataframe_equal(observed, known)
+
+
+"""
+class TestFixTopology:
+    def setup_method(self):
+        p10 = shapely.Point(1,0)
+        p20 = shapely.Point(2,0)
+        p30 = shapely.Point(3,0)
+        p40 = shapely.Point(4,0)
+        p50 = shapely.Point(5,0)
+        p21 = shapely.Point(2,1)
+        p32 = shapely.Point(3,2)
+        p41 = shapely.Point(4,1)
+
+        self.line1020 = shapely.LineString((p10, p20))
+        self.line2030 = shapely.LineString((p20, p30))
+        self.line3040 = shapely.LineString((p30, p40))
+        self.line2040 = shapely.LineString((p20, p40))
+        self.line4050 = shapely.LineString((p40, p50))
+        self.line3021 = shapely.LineString((p30, p21))
+        self.line2132 = shapely.LineString((p21, p32))
+        self.line4132 = shapely.LineString((p41, p32))
+        self.line3041 = shapely.LineString((p30, p41))
+
+        self.line1030 = shapely.LineString((p10, p30))
+        self.line3050 = shapely.LineString((p30, p50))
+        self.line3041323130 = shapely.LineString((p30, p41, p32, p21, p30))
+
+        self.known_road_geoms = geopandas.GeoDataFrame(
+            geometry=[
+                self.line1030,
+                self.line3050,
+                self.line3041323130,
+            ]
+        )
+
+    def test_standard(self):
+        self.known_road_geoms["_status"] = ["changed", None, "changed"]
+        known_flag = False
+        frame = geopandas.GeoDataFrame(
+            geometry=[
+                self.line1020,
+                self.line1020,
+                self.line1020,
+                self.line2040,
+                self.line4050,
+                self.line3021,
+                self.line2132,
+                self.line4132,
+                self.line3041,
+            ]
+        )
+        observed_roads, observed_flag = sgeop.nodes.fix_topology(frame)
+        geopandas.testing.assert_geodataframe_equal(
+            observed_roads, self.known_road_geoms
+        )
+        assert not known_flag
+
+    def test_early_exit(self):
+        known_flag = True
+        frame = self.known_road_geoms
+        observed_roads, observed_flag = sgeop.nodes.fix_topology(frame)
+        geopandas.testing.assert_geodataframe_equal(
+            observed_roads, self.known_road_geoms
+        )
+        assert known_flag
+"""
