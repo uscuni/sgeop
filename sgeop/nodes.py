@@ -257,20 +257,30 @@ def remove_false_nodes(
     return aggregated
 
 
-def fix_topology(roads, eps=1e-4, **kwargs):
-    """Fix road network topology
+def fix_topology(
+    roads: gpd.GeoDataFrame,
+    eps: float = 1e-4,
+    **kwargs,
+) -> gpd.GeoDataFrame:
+    """Fix road network topology. This ensures correct topology of the network by:
 
-    This ensures correct topology of the network by:
+        1.  Adding potentially missing nodes...
+                on intersections of individual LineString endpoints
+                with the remaining network. The idea behind is that
+                if a line ends on an intersection with another, there
+                should be a node on both of them.
+        2. Removing nodes of degree 2...
+                that have no meaning in the network used within our framework.
+        3. Removing duplicated geometries (irrespective of orientation).
 
-    1.  adding potentially missing nodes
-    on intersections of individual LineString endpoints with the remaining network. The
-    idea behind is that if a line ends on an intersection with another, there should be
-    a node on both of them.
-
-    2. removing nodes of degree 2 that have no meaning in the network
-    used within our framework.
-
-    3. removing duplicated geometries (irrespective of orientation).
+    Parameters
+    ----------
+    roads : geopandas.GeoDataFrame
+        Input LineString geometries.
+    eps : float = 1e-4
+        Tolerance epsilon for point snapping passed into ``nodes.split()``.
+    **kwargs : dict
+        Key word arguments passed into ``remove_false_nodes()``.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
