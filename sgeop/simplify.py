@@ -504,9 +504,7 @@ def simplify_network(
 
     """
 
-    roads, already_simplified = fix_topology(roads, eps=eps)
-    if already_simplified:
-        return roads
+    roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
 

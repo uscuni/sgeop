@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pyproj
 import shapely
-from geopandas.testing import assert_geodataframe_equal
 from scipy import sparse
 
 
@@ -241,15 +240,19 @@ def remove_false_nodes(
         loop_geom = loops.geometry.iloc[ix]
         target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
-            node_coords = shapely.get_coordinates(target_nodes)
-            coords = shapely.get_coordinates(loop_geom)
-            new_start = (
-                node_coords[0]
-                if (node_coords[0] != coords[0]).all()
-                else node_coords[1]
+            loop_coords = shapely.get_coordinates(loop_geom)
+            loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
+            loop_points_ix, _ = aggregated[~loop_mask].sindex.query(
+                loop_points.geometry, predicate="dwithin", distance=1e-4
             )
-            new_start_idx = np.where(coords == new_start)[0][0]
-            rolled_coords = np.roll(coords[:-1], -new_start_idx, axis=0)
+            new_start = np.unique(
+                loop_points.loc[loop_points_ix].geometry.get_coordinates().values,
+                axis=0,
+            )
+            new_start_idx = np.where((loop_coords == new_start).all(axis=1))[
+                0
+            ].squeeze()
+            rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
             new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
             fixed_loops.append(shapely.LineString(new_sequence))
             fixed_index.append(ix)
@@ -285,24 +288,13 @@ def fix_topology(
 
     Returns
     -------
-    tuple[gpd.GeoDataFrame, bool]
-        The first element are the input roads that either (a) were already simplified
-        or (b) now have fixed topology and are ready to proceed through the
-        simplification algorithm. The seconds element is a flag for either
-        case (a) or (b). If (a) the simplification algorithm will terminate early.
+    gpd.GeoDataFrame
+        The input roads that now have fixed topology and are ready
+        to proceed through the simplification algorithm.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
-
-    try:
-        assert_geodataframe_equal(roads, roads_w_nodes)
-        # topology does not need further fixing -- roads already simplified
-        fixed = True
-        return roads_w_nodes, fixed
-    except AssertionError:
-        fixed = False
-
-    return remove_false_nodes(roads_w_nodes, **kwargs), fixed
+    return remove_false_nodes(roads_w_nodes, **kwargs)
 
 
 def induce_nodes(roads, eps=1e-4):
@@ -327,6 +319,20 @@ def induce_nodes(roads, eps=1e-4):
     nodes_to_induce = nodes_w_degree[
         nodes_w_degree.degree != nodes_w_degree.expected_degree
     ]
+
+    # special loop cases
+    loop_mask = roads.is_ring
+    loops = roads[loop_mask]
+    loop_points = gpd.GeoDataFrame(
+        geometry=shapely.points(loops.get_coordinates().values)
+    )
+    loop_points_ix, _ = roads[~loop_mask].sindex.query(
+        loop_points.geometry, predicate="dwithin", distance=1e-4
+    )
+    nodes_to_induce = pd.concat(
+        [nodes_to_induce.geometry, loop_points.loc[loop_points_ix].geometry]
+    )
+
     return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
 
 
