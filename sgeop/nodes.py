@@ -320,17 +320,35 @@ def induce_nodes(roads, eps=1e-4):
         nodes_w_degree.degree != nodes_w_degree.expected_degree
     ]
 
-    # special loop cases
+    # special loop cases -----------------------------------------------
     loop_mask = roads.is_ring
-    loops = roads[loop_mask]
+    loops = roads[loop_mask].copy()
     loop_points = gpd.GeoDataFrame(
         geometry=shapely.points(loops.get_coordinates().values)
     )
-    loop_points_ix, _ = roads[~loop_mask].sindex.query(
-        loop_points.geometry, predicate="dwithin", distance=1e-4
+    loop_point_geoms = loop_points.geometry
+
+    # loop points intersecting non-loops
+    loop_points_from_non_loops_ix, _ = roads[~loop_mask].sindex.query(
+        loop_point_geoms, predicate="dwithin", distance=1e-4
     )
+
+    # loop points intersecting other loops
+    loop_points_from_loops_ix, _ = loops.sindex.query(
+        loop_point_geoms, predicate="dwithin", distance=1e-4
+    )
+    loop_intersects_loop, n_loop_intersects_loop = np.unique(
+        loop_points_from_loops_ix, return_counts=True
+    )
+    loop_points_from_loops_ix = loop_intersects_loop[n_loop_intersects_loop > 1]
+
+    # all nodes to induce
     nodes_to_induce = pd.concat(
-        [nodes_to_induce.geometry, loop_points.loc[loop_points_ix].geometry]
+        [
+            nodes_to_induce.geometry,
+            loop_points.loc[loop_points_from_non_loops_ix].geometry,
+            loop_points.loc[loop_points_from_loops_ix].geometry,
+        ]
     )
 
     return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
