@@ -265,7 +265,7 @@ def fix_topology(
     roads: gpd.GeoDataFrame,
     eps: float = 1e-4,
     **kwargs,
-) -> tuple[gpd.GeoDataFrame, bool]:
+) -> gpd.GeoDataFrame:
     """Fix road network topology. This ensures correct topology of the network by:
 
         1.  Adding potentially missing nodes...
