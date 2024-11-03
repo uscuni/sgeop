@@ -304,6 +304,8 @@ def induce_nodes(roads, eps=1e-4):
     idea behind is that if a line ends on an intersection with another, there should be
     a node on both of them.
     """
+
+    # identify by degree mismatch --------------------------------------
     nodes_w_degree = momepy.nx_to_gdf(
         momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False
     )
@@ -316,7 +318,7 @@ def induce_nodes(roads, eps=1e-4):
         dtype=np.bool_,
     )
     nodes_w_degree["expected_degree"] = intersects.sum(axis=1)
-    nodes_to_induce = nodes_w_degree[
+    degree_mistmatch = nodes_w_degree[
         nodes_w_degree.degree != nodes_w_degree.expected_degree
     ]
 
@@ -345,7 +347,7 @@ def induce_nodes(roads, eps=1e-4):
     # all nodes to induce
     nodes_to_induce = pd.concat(
         [
-            nodes_to_induce.geometry,
+            degree_mistmatch.geometry,
             loop_points.loc[loop_points_from_non_loops_ix].geometry,
             loop_points.loc[loop_points_from_loops_ix].geometry,
         ]
