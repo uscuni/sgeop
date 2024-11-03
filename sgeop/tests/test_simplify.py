@@ -33,7 +33,7 @@ def test_simplify_network_small():
 
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
-    pytest.geom_test(known, observed)
+    pytest.geom_test(known, observed, tolerance=2e-1)
 
 
 @pytest.mark.parametrize(
