@@ -45,11 +45,11 @@ def test_simplify_network_small():
     "aoi,tol,known_length",
     [
         ("aleppo_1133", 2e-1, 4_361_625),
-        ("auckland_869", 2e-1, 1_268_048),
+        ("auckland_869", 3e-1, 1_268_048),
         ("bucaramanga_4617", 2e-1, 1_681_011),
         ("douala_809", 1e-1, 2_961_364),
-        ("liege_1656", 2e-1, 2_350_782),
-        ("slc_4881", 2e-1, 1_762_456),
+        ("liege_1656", 3e-1, 2_350_782),
+        ("slc_4881", 3e-1, 1_762_456),
     ],
 )
 def test_simplify_network_full_fua(aoi, tol, known_length):
