@@ -65,7 +65,7 @@
          run: |
            pytest \
            sgeop/ \
-           -vvv \
+           --verbose \
            -r a \
            --numprocesses logical \
            --color yes \
