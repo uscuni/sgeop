@@ -34,14 +34,13 @@ def test_simplify_network_small():
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
 
-    # see gh#.....
+    # see gh#74
     known = known.drop(index=746)
     observed = observed.drop(index=746)
 
     pytest.geom_test(known, observed, tolerance=1.5)
 
 
-"""
 @pytest.mark.parametrize(
     "aoi,tol,known_length",
     [
@@ -71,4 +70,3 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
     if pytest.ubuntu and pytest.env_type != "oldest":
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=tol)
-"""
