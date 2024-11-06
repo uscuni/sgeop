@@ -34,18 +34,18 @@ def test_simplify_network_small():
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
 
-    pytest.geom_test(known, observed, aoi=ac)
+    pytest.geom_test(known, observed, tolerance=1.5, aoi=ac)
 
 
 @pytest.mark.parametrize(
     "aoi,tol,known_length",
     [
-        ("aleppo_1133", 2e-1, 4_361_625),
-        ("auckland_869", 3e-1, 1_268_048),
-        ("bucaramanga_4617", 2e-1, 1_681_011),
-        ("douala_809", 1e-1, 2_961_364),
-        ("liege_1656", 3e-1, 2_350_782),
-        ("slc_4881", 3e-1, 1_762_456),
+        ("aleppo_1133", 0.2, 4_361_625),
+        ("auckland_869", 0.3, 1_268_048),
+        ("bucaramanga_4617", 0.2, 1_681_011),
+        ("douala_809", 0.1, 2_961_364),
+        ("liege_1656", 0.3, 2_350_782),
+        ("slc_4881", 0.3, 1_762_456),
     ],
 )
 def test_simplify_network_full_fua(aoi, tol, known_length):

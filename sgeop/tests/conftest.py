@@ -79,8 +79,8 @@ def geom_test(
     except AssertionError:
         unexpected_bad = []
         for ix in geoms1.index:
-            g1 = geoms1.loc[ix].geometry
-            g2 = geoms2.loc[ix].geometry
+            g1 = geoms1.loc[ix]
+            g2 = geoms2.loc[ix]
             if (
                 not shapely.equals_exact(g1, g2, tolerance=tolerance)
                 and ix not in KNOWN_BAD_GEOMS[aoi]
