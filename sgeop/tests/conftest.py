@@ -88,7 +88,7 @@ def geom_test(
                 unexpected_bad.append(ix)
         if unexpected_bad:
             raise AssertionError(
-                f"Problem in '{aoi}' check locs: {unexpected_bad}"
+                f"Problem in '{aoi}' – check locs: {unexpected_bad}"
             ) from None
 
 
