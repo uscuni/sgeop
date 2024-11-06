@@ -436,3 +436,35 @@ class TestRemoveFalseNodes:
         known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
         observed = sgeop.nodes.remove_false_nodes(known).reset_index(drop=True)
         geopandas.testing.assert_geodataframe_equal(observed, known)
+
+
+class TestInduceNodes:
+    def setup_method(self):
+        p10 = shapely.Point(1, 0)
+        p20 = shapely.Point(2, 0)
+        p30 = shapely.Point(3, 0)
+        p21 = shapely.Point(2, 1)
+        p201 = shapely.Point(2, 0.1)
+
+        self.line1020 = shapely.LineString((p10, p20))
+        self.line2030 = shapely.LineString((p20, p30))
+        self.line1030 = shapely.LineString((p10, p30))
+        self.line2021 = shapely.LineString((p20, p21))
+        self.line20121 = shapely.LineString((p201, p21))
+
+    def test_induced(self):
+        known = geopandas.GeoDataFrame(
+            {
+                "geometry": [self.line2021, self.line1020, self.line2030],
+                "_status": [numpy.nan, "changed", "changed"],
+            }
+        )
+        frame = geopandas.GeoDataFrame(geometry=[self.line1030, self.line2021])
+        observed = sgeop.nodes.induce_nodes(frame)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_not_induced(self):
+        known = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
+        frame = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
+        observed = sgeop.nodes.induce_nodes(frame)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
