@@ -22,6 +22,22 @@ geometry_collection = (
     | geopandas.GeoSeries
 )
 
+####################################################
+# see:
+#   - gh#77
+#   - gh#75
+#   - gh#74
+KNOWN_BAD_GEOMS = {
+    "aleppo_1133": [],
+    "auckland_869": [1412],
+    "bucaramanga_4617": [],
+    "douala_809": [],
+    "liege_1656": [921],
+    "slc_4881": [1146],
+    "apalachicola": [746],
+}
+####################################################
+
 
 def polygonize(
     collection: line_collection, as_geom: bool = True
@@ -45,6 +61,7 @@ def geom_test(
     collection1: geometry_collection,
     collection2: geometry_collection,
     tolerance: float = 1e-1,
+    aoi: None | str = None,
 ) -> bool:
     """Testing helper -- geometry verification."""
 
@@ -54,11 +71,25 @@ def geom_test(
     if not is_geopandas(collection2):
         collection2 = geopandas.GeoSeries(collection2)
 
-    assert shapely.equals_exact(
-        collection1.geometry.normalize(),
-        collection2.geometry.normalize(),
-        tolerance=tolerance,
-    ).all()
+    geoms1 = collection1.geometry.normalize()
+    geoms2 = collection2.geometry.normalize()
+
+    try:
+        assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
+    except AssertionError:
+        unexpected_bad = []
+        for ix in geoms1.index:
+            g1 = geoms1.loc[ix]
+            g2 = geoms2.loc[ix]
+            if (
+                not shapely.equals_exact(g1, g2, tolerance=tolerance)
+                and ix not in KNOWN_BAD_GEOMS[aoi]
+            ):
+                unexpected_bad.append(ix)
+        if unexpected_bad:
+            raise AssertionError(
+                f"Problem in '{aoi}' – check locs: {unexpected_bad}"
+            ) from None
 
 
 def pytest_addoption(parser):

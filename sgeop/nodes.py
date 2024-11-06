@@ -24,7 +24,7 @@ def split(
         Line geometries to be split with ``split_points``.
     crs : str | pyproj.CRS
         Anything accepted by ``pyproj.CRS``.
-    eps : float
+    eps : float = 1e-4
         Tolerance epsilon for point snapping.
 
     Returns
@@ -297,12 +297,22 @@ def fix_topology(
     return remove_false_nodes(roads_w_nodes, **kwargs)
 
 
-def induce_nodes(roads, eps=1e-4):
-    """
-    adding potentially missing nodes
-    on intersections of individual LineString endpoints with the remaining network. The
-    idea behind is that if a line ends on an intersection with another, there should be
-    a node on both of them.
+def induce_nodes(roads: gpd.GeoDataFrame, eps: float = 1e-4) -> gpd.GeoDataFrame:
+    """Adding potentially missing nodes on intersections of individual LineString
+    endpoints with the remaining network. The idea behind is that if a line ends
+    on an intersection with another, there should be a node on both of them.
+
+    Parameters
+    ----------
+    roads : geopandas.GeoDataFrame
+        Input LineString geometries.
+    eps : float = 1e-4
+        Tolerance epsilon for point snapping passed into ``nodes.split()``.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        Updated ``roads`` with (potentially) added nodes.
     """
 
     # identify by degree mismatch --------------------------------------
@@ -312,11 +322,9 @@ def induce_nodes(roads, eps=1e-4):
     nodes_ix, roads_ix = roads.sindex.query(
         nodes_w_degree.geometry, predicate="dwithin", distance=1e-4
     )
-    intersects = sparse.coo_array(
-        ([True] * len(nodes_ix), (nodes_ix, roads_ix)),
-        shape=(len(nodes_w_degree), len(roads)),
-        dtype=np.bool_,
-    )
+    coo_vals = ([True] * len(nodes_ix), (nodes_ix, roads_ix))
+    coo_shape = (len(nodes_w_degree), len(roads))
+    intersects = sparse.coo_array(coo_vals, shape=coo_shape, dtype=np.bool_)
     nodes_w_degree["expected_degree"] = intersects.sum(axis=1)
     degree_mistmatch = nodes_w_degree[
         nodes_w_degree.degree != nodes_w_degree.expected_degree
