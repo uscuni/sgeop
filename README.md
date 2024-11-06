@@ -16,7 +16,7 @@ simplified = sgeop.simplify_network(gdf)
 
 ## Contribution
 
-See our guidelines in [`CONTRIBUTING.md`]([https://github.com/uscuni/sgeop/CONTRIBUTING.md](https://github.com/uscuni/sgeop/blob/main/CONTRIBUTING.md)).
+See our guidelines in [`CONTRIBUTING.md`](https://github.com/uscuni/sgeop/blob/main/CONTRIBUTING.md).
 
 ## Recommended Citation
 
