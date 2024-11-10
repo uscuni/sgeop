@@ -307,6 +307,303 @@ def test_weld_edges(edgelines, ignore, known):
     numpy.testing.assert_array_equal(observed, known)
 
 
+class TestInduceNodes:
+    def setup_method(self):
+        self.p10 = shapely.Point(1, 0)
+        self.p20 = shapely.Point(2, 0)
+        self.p201 = shapely.Point(2, 0.1)
+        self.p30 = shapely.Point(3, 0)
+        self.p40 = shapely.Point(4, 0)
+        self.p21 = shapely.Point(2, 1)
+        self.p41 = shapely.Point(4, 1)
+        self.p251 = shapely.Point(2.5, 1)
+        self.p215 = shapely.Point(2, 1.5)
+        self.p315 = shapely.Point(3, 1.5)
+
+        self.line1020 = shapely.LineString((self.p10, self.p20))
+        self.line1030 = shapely.LineString((self.p10, self.p30))
+        self.line20121 = shapely.LineString((self.p201, self.p21))
+        self.line2021 = shapely.LineString((self.p20, self.p21))
+        self.line2030 = shapely.LineString((self.p20, self.p30))
+        self.line2040 = shapely.LineString((self.p20, self.p40))
+        self.line215351251 = shapely.LineString((self.p215, self.p315, self.p251))
+        self.line251215 = shapely.LineString((self.p251, self.p215))
+        self.line25141 = shapely.LineString((self.p251, self.p41))
+        self.line2514130 = shapely.LineString((self.p251, self.p41, self.p30))
+        self.line3040 = shapely.LineString((self.p30, self.p40))
+        self.line3021251 = shapely.LineString((self.p30, self.p21, self.p251))
+        self.line3041 = shapely.LineString((self.p30, self.p41))
+        self.line4130 = shapely.LineString((self.p41, self.p30))
+        self.line413021 = shapely.LineString((self.p41, self.p30, self.p21))
+        self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
+        self.line30214130 = shapely.LineString((self.p30, self.p21, self.p41, self.p30))
+        self.line215315251215 = shapely.LineString(
+            (self.p215, self.p315, self.p251, self.p215)
+        )
+        self.line251215315251 = shapely.LineString(
+            (self.p251, self.p215, self.p315, self.p251)
+        )
+
+    def test_induced_simple(self):
+        known = geopandas.GeoDataFrame(
+            {
+                "geometry": [self.line2021, self.line1020, self.line2030],
+                "_status": [numpy.nan, "changed", "changed"],
+            }
+        )
+        edges = geopandas.GeoDataFrame(geometry=[self.line1030, self.line2021])
+        observed = sgeop.nodes.induce_nodes(edges)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_not_induced_simple(self):
+        known = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
+        edges = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
+        observed = sgeop.nodes.induce_nodes(edges)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_induced_complex(self):
+        known = geopandas.GeoDataFrame(
+            {
+                "geometry": [
+                    self.line2030,
+                    self.line3040,
+                    self.line4130,
+                    self.line3021251,
+                    self.line25141,
+                    self.line215351251,
+                    self.line251215,
+                ],
+                "_status": ["changed"] * 7,
+            }
+        )
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2040, self.line41302141, self.line215315251215]
+        )
+        observed = sgeop.nodes.induce_nodes(edges)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_not_induced_complex(self):
+        known = geopandas.GeoDataFrame(
+            {
+                "geometry": [
+                    self.line2030,
+                    self.line3040,
+                    self.line3021251,
+                    self.line2514130,
+                    self.line251215315251,
+                ],
+            }
+        )
+        edges = geopandas.GeoDataFrame(
+            geometry=[
+                self.line2030,
+                self.line3040,
+                self.line3021251,
+                self.line2514130,
+                self.line251215315251,
+            ]
+        )
+        observed = sgeop.nodes.induce_nodes(edges)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+
+class TestIdentifyDegreeMismatch:
+    def setup_method(self):
+        self.p20 = shapely.Point(2, 0)
+        self.p30 = shapely.Point(3, 0)
+        self.p40 = shapely.Point(4, 0)
+        self.p21 = shapely.Point(2, 1)
+        self.p41 = shapely.Point(4, 1)
+
+        self.line2040 = shapely.LineString((self.p20, self.p40))
+        self.line413021 = shapely.LineString((self.p41, self.p30, self.p21))
+        self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
+
+        self.sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
+
+    def test_no_mismatch(self):
+        known = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line413021])
+        observed = sgeop.nodes._identify_degree_mismatch(edges, self.sindex_kws)
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+    def test_mismatch(self):
+        known = geopandas.GeoSeries([self.p41], index=[2])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
+        observed = sgeop.nodes._identify_degree_mismatch(edges, self.sindex_kws)
+        geopandas.testing.assert_geoseries_equal(observed, known)
+
+
+class TestMakesLoopContact:
+    def setup_method(self):
+        self.p20 = shapely.Point(2, 0)
+        self.p30 = shapely.Point(3, 0)
+        self.p40 = shapely.Point(4, 0)
+        self.p21 = shapely.Point(2, 1)
+        self.p41 = shapely.Point(4, 1)
+        self.p251 = shapely.Point(2.5, 1)
+        self.p215 = shapely.Point(2, 1.5)
+        self.p315 = shapely.Point(3, 1.5)
+
+        self.line2040 = shapely.LineString((self.p20, self.p40))
+        self.line2030 = shapely.LineString((self.p20, self.p30))
+        self.line3040 = shapely.LineString((self.p30, self.p40))
+        self.line3041 = shapely.LineString((self.p30, self.p41))
+        self.line413021 = shapely.LineString((self.p41, self.p30, self.p21))
+        self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
+        self.line30214130 = shapely.LineString((self.p30, self.p21, self.p41, self.p30))
+        self.line215315251215 = shapely.LineString(
+            (self.p215, self.p315, self.p251, self.p215)
+        )
+        self.line251215315251 = shapely.LineString(
+            (self.p251, self.p215, self.p315, self.p251)
+        )
+
+        self.sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
+
+    def test_off_1_bad_order(self):
+        known_off_loops = geopandas.GeoSeries([self.p30], index=[1])
+        known_on_loops = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_off_2_bad_order(self):
+        known_off_loops = geopandas.GeoSeries([self.p30, self.p30], index=[1, 1])
+        known_on_loops = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2030, self.line3040, self.line41302141]
+        )
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_off_1_good_order(self):
+        known_off_loops = geopandas.GeoSeries([self.p30, self.p30], index=[0, 3])
+        known_on_loops = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line30214130])
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_off_2_good_order(self):
+        known_off_loops = geopandas.GeoSeries([self.p30] * 4, index=[0, 0, 3, 3])
+        known_on_loops = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2030, self.line3040, self.line30214130]
+        )
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_on_1_bad_order(self):
+        known_off_loops = geopandas.GeoSeries([])
+        known_on_loops = geopandas.GeoSeries([self.p251], index=[6])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line41302141, self.line215315251215]
+        )
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_on_1_good_order(self):
+        known_off_loops = geopandas.GeoSeries([])
+        known_on_loops = geopandas.GeoSeries([self.p251, self.p251], index=[4, 7])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line41302141, self.line251215315251]
+        )
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_multi_geoms(self):
+        known_off_loops = geopandas.GeoSeries([self.p30], index=[1])
+        known_on_loops = geopandas.GeoSeries([self.p251, self.p251], index=[4, 7])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2040, self.line41302141, self.line251215315251]
+        )
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+    def test_no_loops(self):
+        known_off_loops = geopandas.GeoSeries([])
+        known_on_loops = geopandas.GeoSeries([])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line3041])
+        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+            edges, self.sindex_kws
+        )
+        geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
+        geopandas.testing.assert_geoseries_equal(observed_on_loops, known_on_loops)
+
+
+class TestLoopsAndNonloops:
+    def setup_method(self):
+        self.p20 = shapely.Point(2, 0)
+        self.p30 = shapely.Point(3, 0)
+        self.p40 = shapely.Point(4, 0)
+        self.p21 = shapely.Point(2, 1)
+        self.p41 = shapely.Point(4, 1)
+        self.p251 = shapely.Point(2.5, 1)
+        self.p215 = shapely.Point(2, 1.5)
+        self.p315 = shapely.Point(3, 1.5)
+
+        self.line2040 = shapely.LineString((self.p20, self.p40))
+        self.line413021 = shapely.LineString((self.p41, self.p30, self.p21))
+        self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
+        self.line251215315251 = shapely.LineString(
+            (self.p215, self.p315, self.p251, self.p215)
+        )
+
+    def test_only_loops(self):
+        known_loops = geopandas.GeoDataFrame(
+            geometry=[self.line41302141, self.line251215315251]
+        )
+        known_non_loops = geopandas.GeoDataFrame(geometry=[])
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line41302141, self.line251215315251]
+        )
+        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+
+        geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
+        geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
+
+    def test_both(self):
+        known_loops = geopandas.GeoDataFrame(geometry=[self.line41302141], index=[1])
+        known_non_loops = geopandas.GeoDataFrame(geometry=[self.line2040])
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
+        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+
+        geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
+        geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
+
+    def test_only_non_loops(self):
+        known_loops = geopandas.GeoDataFrame(geometry=[])
+        known_non_loops = geopandas.GeoDataFrame(
+            geometry=[self.line2040, self.line413021]
+        )
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line413021])
+        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+
+        geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
+        geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
+
+
 class TestRemoveFalseNodes:
     def setup_method(self):
         p10 = shapely.Point(1, 0)
@@ -438,33 +735,54 @@ class TestRemoveFalseNodes:
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
 
-class TestInduceNodes:
+class TestRotateLoopCoords:
     def setup_method(self):
-        p10 = shapely.Point(1, 0)
-        p20 = shapely.Point(2, 0)
-        p30 = shapely.Point(3, 0)
-        p21 = shapely.Point(2, 1)
-        p201 = shapely.Point(2, 0.1)
+        self.p20 = shapely.Point(2, 0)
+        self.p30 = shapely.Point(3, 0)
+        self.p40 = shapely.Point(4, 0)
+        self.p21 = shapely.Point(2, 1)
+        self.p41 = shapely.Point(4, 1)
 
-        self.line1020 = shapely.LineString((p10, p20))
-        self.line2030 = shapely.LineString((p20, p30))
-        self.line1030 = shapely.LineString((p10, p30))
-        self.line2021 = shapely.LineString((p20, p21))
-        self.line20121 = shapely.LineString((p201, p21))
+        self.line2040 = shapely.LineString((self.p20, self.p40))
+        self.line2030 = shapely.LineString((self.p20, self.p30))
+        self.line3040 = shapely.LineString((self.p30, self.p40))
+        self.line41302141 = shapely.LineString((self.p41, self.p30, self.p21, self.p41))
+        self.line30214130 = shapely.LineString((self.p30, self.p21, self.p41, self.p30))
 
-    def test_induced(self):
-        known = geopandas.GeoDataFrame(
-            {
-                "geometry": [self.line2021, self.line1020, self.line2030],
-                "_status": [numpy.nan, "changed", "changed"],
-            }
+        self.known = numpy.array([[3.0, 0.0], [2.0, 1.0], [4.0, 1.0], [3.0, 0.0]])
+
+    def test_needs_rotate_intersects_1(self):
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
+        observed = sgeop.nodes._rotate_loop_coords(
+            edges[edges.is_ring].geometry,
+            edges[~edges.is_ring],
         )
-        frame = geopandas.GeoDataFrame(geometry=[self.line1030, self.line2021])
-        observed = sgeop.nodes.induce_nodes(frame)
-        geopandas.testing.assert_geodataframe_equal(observed, known)
+        numpy.testing.assert_array_equal(observed, self.known)
 
-    def test_not_induced(self):
-        known = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
-        frame = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
-        observed = sgeop.nodes.induce_nodes(frame)
-        geopandas.testing.assert_geodataframe_equal(observed, known)
+    def test_needs_rotate_intersects_2(self):
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2030, self.line3040, self.line41302141]
+        )
+        observed = sgeop.nodes._rotate_loop_coords(
+            edges[edges.is_ring].geometry,
+            edges[~edges.is_ring],
+        )
+        numpy.testing.assert_array_equal(observed, self.known)
+
+    def test_no_rotate_intersects_1(self):
+        edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line30214130])
+        observed = sgeop.nodes._rotate_loop_coords(
+            edges[edges.is_ring].geometry,
+            edges[~edges.is_ring],
+        )
+        numpy.testing.assert_array_equal(observed, self.known)
+
+    def test_no_rotate_intersects_2(self):
+        edges = geopandas.GeoDataFrame(
+            geometry=[self.line2030, self.line3040, self.line30214130]
+        )
+        observed = sgeop.nodes._rotate_loop_coords(
+            edges[edges.is_ring].geometry,
+            edges[~edges.is_ring],
+        )
+        numpy.testing.assert_array_equal(observed, self.known)
