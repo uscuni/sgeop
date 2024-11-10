@@ -226,7 +226,7 @@ def _makes_loop_contact(
 ) -> tuple[gpd.GeoSeries]:
     """Helper to identify:
     1. loop nodes intersecting non-loops
-    2. loop points intersecting other loops
+    2. loop nodes intersecting other loops
     """
 
     loops, not_loops = _loops_and_non_loops(edges)
