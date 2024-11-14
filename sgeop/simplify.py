@@ -521,6 +521,8 @@ def simplify_network(
         exclusion_mask=exclusion_mask,
         predicate=predicate,
     )
+    if artifacts.empty:
+        return roads.reset_index(drop=True)
 
     # Loop 1
     new_roads = simplify_loop(
@@ -551,6 +553,8 @@ def simplify_network(
         exclusion_mask=exclusion_mask,
         predicate=predicate,
     )
+    if artifacts.empty:
+        return new_roads.reset_index(drop=True)
 
     # Loop 2
     final_roads = simplify_loop(

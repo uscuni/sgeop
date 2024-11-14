@@ -36,6 +36,9 @@ def get_artifacts(
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings("ignore", message="No threshold found")
         fas = momepy.FaceArtifacts(roads)
+    if fas.polygons.empty or (len(fas.peaks) < 2 and len(fas.valleys) == 0):
+        return gpd.GeoDataFrame(geometry=[]), None
+
     polygons = fas.polygons.set_crs(roads.crs)
 
     # rook neighbors
