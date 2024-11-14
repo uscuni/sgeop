@@ -77,7 +77,7 @@ def geom_test(
     try:
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()
     except AssertionError:
-        unexpected_bad = []
+        unexpected_bad = {}
         for ix in geoms1.index:
             g1 = geoms1.loc[ix]
             g2 = geoms2.loc[ix]
@@ -85,7 +85,12 @@ def geom_test(
                 not shapely.equals_exact(g1, g2, tolerance=tolerance)
                 and ix not in KNOWN_BAD_GEOMS[aoi]
             ):
-                unexpected_bad.append(ix)
+                unexpected_bad[ix] = {
+                    "n_coords": {
+                        "g1": shapely.get_coordinates(g1).shape[0],
+                        "g2": shapely.get_coordinates(g2).shape[0],
+                    }
+                }
         if unexpected_bad:
             raise AssertionError(
                 f"Problem in '{aoi}' – check locs: {unexpected_bad}"
