@@ -79,6 +79,9 @@ def _status(x: pd.Series) -> str:
     if len(x) == 1:
         return x.iloc[0]
     if "new" in x:
+        # This logic is here just to be safe. It will be hit if we create a new line
+        # and in a subsequent step extend it which is not what normally happens.
+        # All the new bits are caught likely by the first ``if``.
         return "new"
     return "changed"
 
