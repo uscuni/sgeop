@@ -30,13 +30,16 @@
             py312_sgeop-latest,
             py312_sgeop-dev,
             py313_sgeop-latest,
+            py313_sgeop-dev,
          ]
          include:
-           - environment-file: py312_sgeop-latest
+           - environment-file: py313_sgeop-latest
              os: macos-13 # Intel
-           - environment-file: py312_sgeop-latest
+           - environment-file: py313_sgeop-latest
              os: macos-14 # Apple Silicon
-           - environment-file: py312_sgeop-latest
+           - environment-file: py313_sgeop-latest
+             os: macos-15 # Apple Silicon
+           - environment-file: py313_sgeop-latest
              os: windows-latest
        fail-fast: false
 
