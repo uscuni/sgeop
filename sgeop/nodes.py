@@ -172,6 +172,91 @@ def weld_edges(
     ).tolist()
 
 
+def induce_nodes(roads: gpd.GeoDataFrame, eps: float = 1e-4) -> gpd.GeoDataFrame:
+    """Adding potentially missing nodes on intersections of individual LineString
+    endpoints with the remaining network. The idea behind is that if a line ends
+    on an intersection with another, there should be a node on both of them.
+
+    Parameters
+    ----------
+    roads : geopandas.GeoDataFrame
+        Input LineString geometries.
+    eps : float = 1e-4
+        Tolerance epsilon for point snapping passed into ``nodes.split()``.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        Updated ``roads`` with (potentially) added nodes.
+    """
+
+    sindex_kws = {"predicate": "dwithin", "distance": 1e-4}
+
+    # identify degree mismatch cases
+    nodes_degree_mismatch = _identify_degree_mismatch(roads, sindex_kws)
+
+    # ensure loop topology cases:
+    #   - loop nodes intersecting non-loops
+    #   - loop nodes intersecting other loops
+    nodes_off_loops, nodes_on_loops = _makes_loop_contact(roads, sindex_kws)
+
+    # all nodes to induce
+    nodes_to_induce = pd.concat(
+        [nodes_degree_mismatch, nodes_off_loops, nodes_on_loops]
+    )
+
+    return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
+
+
+def _identify_degree_mismatch(
+    edges: gpd.GeoDataFrame, sindex_kws: dict
+) -> gpd.GeoSeries:
+    """Helper to identify difference of observed vs. expected node degree."""
+    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(edges)), lines=False)
+    nix, eix = edges.sindex.query(nodes.geometry, **sindex_kws)
+    coo_vals = ([True] * len(nix), (nix, eix))
+    coo_shape = (len(nodes), len(edges))
+    intersects = sparse.coo_array(coo_vals, shape=coo_shape, dtype=np.bool_)
+    nodes["expected_degree"] = intersects.sum(axis=1)
+    return nodes[nodes["degree"] != nodes["expected_degree"]].geometry
+
+
+def _makes_loop_contact(
+    edges: gpd.GeoDataFrame, sindex_kws: dict
+) -> tuple[gpd.GeoSeries]:
+    """Helper to identify:
+    1. loop nodes intersecting non-loops
+    2. loop nodes intersecting other loops
+    """
+
+    loops, not_loops = _loops_and_non_loops(edges)
+    loop_points = shapely.points(loops.get_coordinates().values)
+    loop_gdf = gpd.GeoDataFrame(geometry=loop_points)
+    loop_point_geoms = loop_gdf.geometry
+
+    # loop points intersecting non-loops
+    nodes_from_non_loops_ix, _ = not_loops.sindex.query(loop_point_geoms, **sindex_kws)
+
+    # loop points intersecting other loops
+    nodes_from_loops_ix, _ = loops.sindex.query(loop_point_geoms, **sindex_kws)
+    loop_x_loop, n_loop_x_loop = np.unique(nodes_from_loops_ix, return_counts=True)
+    nodes_from_loops_ix = loop_x_loop[n_loop_x_loop > 1]
+
+    # tease out both varieties
+    nodes_non_loops = loop_gdf.loc[nodes_from_non_loops_ix]
+    nodes_loops = loop_gdf.loc[nodes_from_loops_ix]
+
+    return nodes_non_loops.geometry, nodes_loops.geometry
+
+
+def _loops_and_non_loops(edges: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame]:
+    """Bifurcate edge gdf into loops and non-loops."""
+    loop_mask = edges.is_ring
+    not_loops = edges[~loop_mask]
+    loops = edges[loop_mask]
+    return loops, not_loops
+
+
 def remove_false_nodes(
     gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str = "first", **kwargs
 ):
@@ -182,7 +267,7 @@ def remove_false_nodes(
     gdf : gpd.GeoSeries | gpd.GeoDataFrame
         Input edgelines process. If any edges are ``MultiLineString`` they
         will be exploded into constituent ``LineString`` components.
-    aggfunc : str = "first"
+    aggfunc : str = 'first'
         Aggregate function for processing non-spatial component.
     **kwargs
         Keyword arguments for ``aggfunc``.
@@ -226,13 +311,18 @@ def remove_false_nodes(
     # Recombine
     aggregated = aggregated_geometry.join(aggregated_data)
 
+    # Derive nodes
     nodes = momepy.nx_to_gdf(
         momepy.node_degree(momepy.gdf_to_nx(aggregated[[aggregated.geometry.name]])),
         lines=False,
     )
-    loop_mask = aggregated.is_ring
-    loops = aggregated[loop_mask]
 
+    # Bifurcate edges into loops and non-loops
+    loops, not_loops = _loops_and_non_loops(aggregated)
+
+    # Ensure:
+    #   - all loops have exactly 1 endpoint; and
+    #   - that endpoint shares a node with an intersecting line
     fixed_loops = []
     fixed_index = []
     node_ix, loop_ix = loops.sindex.query(nodes.geometry, predicate="intersects")
@@ -240,21 +330,33 @@ def remove_false_nodes(
         loop_geom = loops.geometry.iloc[ix]
         target_nodes = nodes.geometry.iloc[node_ix[loop_ix == ix]]
         if len(target_nodes) == 2:
-            node_coords = shapely.get_coordinates(target_nodes)
-            coords = shapely.get_coordinates(loop_geom)
-            new_start = (
-                node_coords[0]
-                if (node_coords[0] != coords[0]).all()
-                else node_coords[1]
-            )
-            new_start_idx = np.where(coords == new_start)[0][0]
-            rolled_coords = np.roll(coords[:-1], -new_start_idx, axis=0)
-            new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
+            new_sequence = _rotate_loop_coords(loop_geom, not_loops)
             fixed_loops.append(shapely.LineString(new_sequence))
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
     return aggregated
+
+
+def _rotate_loop_coords(
+    loop_geom: shapely.LineString, not_loops: gpd.GeoDataFrame
+) -> np.ndarray:
+    """Rotate loop node coordinates if needed to ensure topology."""
+
+    loop_coords = shapely.get_coordinates(loop_geom)
+    loop_points = gpd.GeoDataFrame(geometry=shapely.points(loop_coords))
+    loop_points_ix, _ = not_loops.sindex.query(
+        loop_points.geometry, predicate="dwithin", distance=1e-4
+    )
+
+    _shared_node = loop_points.loc[loop_points_ix].geometry.get_coordinates().values
+    new_start = np.unique(_shared_node, axis=0)
+    _coords_match = (loop_coords == new_start).all(axis=1)
+    new_start_idx = np.where(_coords_match)[0].squeeze()
+
+    rolled_coords = np.roll(loop_coords[:-1], -new_start_idx, axis=0)
+    new_sequence = np.append(rolled_coords, rolled_coords[[0]], axis=0)
+    return new_sequence
 
 
 def fix_topology(
@@ -281,46 +383,16 @@ def fix_topology(
         Tolerance epsilon for point snapping passed into ``nodes.split()``.
     **kwargs : dict
         Key word arguments passed into ``remove_false_nodes()``.
+
+    Returns
+    -------
+    gpd.GeoDataFrame
+        The input roads that now have fixed topology and are ready
+        to proceed through the simplification algorithm.
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
     return remove_false_nodes(roads_w_nodes, **kwargs)
-
-
-def induce_nodes(roads: gpd.GeoDataFrame, eps: float = 1e-4) -> gpd.GeoDataFrame:
-    """Adding potentially missing nodes on intersections of individual LineString
-    endpoints with the remaining network. The idea behind is that if a line ends
-    on an intersection with another, there should be a node on both of them.
-
-    Parameters
-    ----------
-    roads : geopandas.GeoDataFrame
-        Input LineString geometries.
-    eps : float = 1e-4
-        Tolerance epsilon for point snapping passed into ``nodes.split()``.
-
-    Returns
-    -------
-    geopandas.GeoDataFrame
-        Updated ``roads`` with (potentially) added nodes.
-    """
-    nodes_w_degree = momepy.nx_to_gdf(
-        momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False
-    )
-    nodes_ix, roads_ix = roads.sindex.query(
-        nodes_w_degree.geometry, predicate="dwithin", distance=1e-4
-    )
-
-    coo_vals = ([True] * len(nodes_ix), (nodes_ix, roads_ix))
-    coo_shape = (len(nodes_w_degree), len(roads))
-    intersects = sparse.coo_array(coo_vals, shape=coo_shape, dtype=np.bool_)
-
-    nodes_w_degree["expected_degree"] = intersects.sum(axis=1)
-
-    degree_mistmatch = nodes_w_degree.degree != nodes_w_degree.expected_degree
-    nodes_to_induce = nodes_w_degree[degree_mistmatch]
-
-    return split(nodes_to_induce.geometry, roads, roads.crs, eps=eps)
 
 
 def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
