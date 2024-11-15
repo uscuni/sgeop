@@ -29,6 +29,7 @@
             py311_sgeop-latest,
             py312_sgeop-latest,
             py312_sgeop-dev,
+            py313_sgeop-latest,
          ]
          include:
            - environment-file: py312_sgeop-latest
