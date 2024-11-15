@@ -395,7 +395,7 @@ def fix_topology(
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_false_nodes(roads_w_nodes, **kwargs)
+    return remove_false_nodes(roads_w_nodes, **kwargs).reset_index(drop=True)
 
 
 def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
