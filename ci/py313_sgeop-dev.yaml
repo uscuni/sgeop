@@ -1,8 +1,8 @@
-name: py312_sgeop-dev
+name: py313_sgeop-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.12
+  - python=3.13
   - geos # for shapely
   - git
   - pip
