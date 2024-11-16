@@ -338,7 +338,7 @@ def remove_false_nodes(
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
-    return aggregated
+    return aggregated.reset_index(drop=True)
 
 
 def _rotate_loop_coords(
@@ -395,7 +395,7 @@ def fix_topology(
     """
     roads = roads[~roads.geometry.normalize().duplicated()].copy()
     roads_w_nodes = induce_nodes(roads, eps=eps)
-    return remove_false_nodes(roads_w_nodes, **kwargs).reset_index(drop=True)
+    return remove_false_nodes(roads_w_nodes, **kwargs)
 
 
 def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
