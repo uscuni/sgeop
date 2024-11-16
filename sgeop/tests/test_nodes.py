@@ -786,3 +786,68 @@ class TestRotateLoopCoords:
             edges[~edges.is_ring],
         )
         numpy.testing.assert_array_equal(observed, self.known)
+
+
+class TestConsolidateNodes:
+    def setup_method(self):
+        self.p1 = shapely.Point(10, 10)
+        self.p2 = shapely.Point(15, 15)
+        self.p3 = shapely.Point(15, 15.5)
+        self.p4 = shapely.Point(17, 16)
+        self.p5 = shapely.Point(17, 15)
+        self.p6 = shapely.Point(10, 20)
+        self.p7 = shapely.Point(20, 20)
+        self.p8 = shapely.Point(20, 10)
+
+        self.line1 = shapely.LineString((self.p1, self.p2))
+        self.line2 = shapely.LineString((self.p2, self.p3))
+        self.line3 = shapely.LineString((self.p3, self.p4))
+        self.line4 = shapely.LineString((self.p4, self.p5))
+        self.line5 = shapely.LineString((self.p5, self.p2))
+        self.line6 = shapely.LineString((self.p6, self.p3))
+        self.line7 = shapely.LineString((self.p7, self.p4))
+        self.line8 = shapely.LineString((self.p8, self.p5))
+
+        self.lines = [
+            self.line1,
+            self.line2,
+            self.line3,
+            self.line4,
+            self.line5,
+            self.line6,
+            self.line7,
+            self.line8,
+        ]
+
+        self.lines_series = geopandas.GeoSeries(self.lines)
+        self.lines_gframe = geopandas.GeoDataFrame(geometry=self.lines_series)
+
+    def test_series_only_ends(self):
+        known = geopandas.GeoDataFrame(
+            {"geometry": [self.line1], "_status": ["original"]}
+        )
+        observed = sgeop.nodes.consolidate_nodes(geopandas.GeoSeries([self.line1]))
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_frame_only_ends(self):
+        known = geopandas.GeoDataFrame(
+            {"geometry": [self.line1], "_status": ["original"]}
+        )
+        observed = sgeop.nodes.consolidate_nodes(
+            geopandas.GeoDataFrame(geometry=[self.line1])
+        )
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_series_no_change(self):
+        known = geopandas.GeoDataFrame(
+            {"geometry": self.lines_series, "_status": ["original"] * 8}
+        )
+        observed = sgeop.nodes.consolidate_nodes(self.lines_series, tolerance=0.1)
+        geopandas.testing.assert_geodataframe_equal(observed, known)
+
+    def test_frame_no_change(self):
+        known = geopandas.GeoDataFrame(
+            {"geometry": self.lines_series, "_status": ["original"] * 8}
+        )
+        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=0.1)
+        geopandas.testing.assert_geodataframe_equal(observed, known)

@@ -338,7 +338,7 @@ def remove_false_nodes(
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
-    return aggregated
+    return aggregated.reset_index(drop=True)
 
 
 def _rotate_loop_coords(
@@ -398,29 +398,34 @@ def fix_topology(
     return remove_false_nodes(roads_w_nodes, **kwargs)
 
 
-def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
+def consolidate_nodes(
+    gdf: gpd.GeoDataFrame,
+    tolerance: float = 2.0,
+    preserve_ends: bool = False,
+) -> gpd.GeoSeries:
     """Return geometry with consolidated nodes.
 
     Replace clusters of nodes with a single node (weighted centroid
     of a cluster) and snap linestring geometry to it. Cluster is
-    defined using DBSCAN on coordinates with ``tolerance``==``eps`.
+    defined using DBSCAN on coordinates with ``tolerance==eps`.
 
     Does not preserve any attributes, function is purely geometric.
 
     Parameters
     ----------
-    gdf : GeoDataFrame
-        GeoDataFrame with LineStrings (usually representing street network)
-    tolerance : float
+    gdf : geopandas.GeoDataFrame
+        GeoDataFrame with LineStrings (usually representing street network).
+    tolerance : float = 2.0
         The maximum distance between two nodes for one to be considered
         as in the neighborhood of the other. Nodes within tolerance are
         considered a part of a single cluster and will be consolidated.
-    preserve_ends : bool
-        If True, nodes of a degree 1 will be excluded from the consolidation
+    preserve_ends : bool = False
+        If ``True``, nodes of a degree 1 will be excluded from the consolidation.
 
     Returns
     -------
-    GeoSeries
+    geopandas.GeoSeries
+        ......
     """
     # TODO: this should not dumbly merge all nodes within the cluster to a single
     # TODO: centroid but iteratively - do the two nearest and add other only if the
@@ -437,12 +442,12 @@ def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(gdf)), lines=False)
 
     if preserve_ends:
-        ends = nodes[nodes.degree == 1].buffer(
-            1
-        )  # keep at least one meter of original geometry around each end
+        # keep at least one meter of original geometry around each end
+        ends = nodes[nodes.degree == 1].buffer(1)
         nodes = nodes[nodes.degree > 1].copy()
 
         # if all we have are ends, return the original
+        # - this is generally when called from within ``geometry._consolidate()``
         if nodes.empty:
             gdf["_status"] = "original"
             return gdf
@@ -468,9 +473,10 @@ def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
     midpoints = []
 
     clusters = change.dissolve(change.lab)
-    cookies = clusters.buffer(
-        tolerance / 2
-    ).convex_hull  # TODO: not optimal but avoids some MultiLineStrings but not all
+
+    # TODO: not optimal but avoids some MultiLineStrings but not all
+    cookies = clusters.buffer(tolerance / 2).convex_hull
+
     if preserve_ends:
         cookies = cookies.to_frame().overlay(ends.to_frame(), how="difference")
 
@@ -479,19 +485,15 @@ def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
         pts = geom.iloc[inds].intersection(cookie.boundary).get_coordinates()
         pts = shapely.get_coordinates(geom.iloc[inds].intersection(cookie.boundary))
         if pts.shape[0] > 0:
-            geom.iloc[inds] = geom.iloc[inds].difference(
-                cookie
-            )  # TODO: this may result in MultiLineString - we need to avoid that
+            # TODO: this may result in MultiLineString - we need to avoid that
             # TODO: It is temporarily fixed by that explode in return
+            geom.iloc[inds] = geom.iloc[inds].difference(cookie)
+
             status.iloc[inds] = "snapped"
             midpoint = np.mean(shapely.get_coordinates(cluster), axis=0)
             midpoints.append(midpoint)
-            mids = np.array(
-                [
-                    midpoint,
-                ]
-                * len(pts)
-            )
+            mids = np.array([midpoint] * len(pts))
+
             spider = shapely.linestrings(
                 np.array([pts[:, 0], mids[:, 0]]).T,
                 y=np.array([pts[:, 1], mids[:, 1]]).T,
@@ -503,12 +505,8 @@ def consolidate_nodes(gdf, tolerance=2, preserve_ends=False):
 
     if spiders:
         # combine geometries
-        gdf = pd.concat(
-            [
-                gdf,
-                gpd.GeoDataFrame(geometry=np.hstack(spiders), crs=geom.crs),
-            ]
-        )
+        geoms = np.hstack(spiders)
+        gdf = pd.concat([gdf, gpd.GeoDataFrame(geometry=geoms, crs=geom.crs)])
 
     return remove_false_nodes(
         gdf[~gdf.geometry.is_empty].explode(),
