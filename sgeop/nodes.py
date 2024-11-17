@@ -425,7 +425,7 @@ def consolidate_nodes(
     Returns
     -------
     geopandas.GeoSeries
-        ......
+        Updated input ``gdf`` of LineStrings with consolidated nodes.
     """
     # TODO: this should not dumbly merge all nodes within the cluster to a single
     # TODO: centroid but iteratively - do the two nearest and add other only if the
