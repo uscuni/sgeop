@@ -78,7 +78,8 @@ def _status(x: pd.Series) -> str:
     """Determine the status of edge line(s)."""
     if len(x) == 1:
         return x.iloc[0]
-    if "new" in x:
+    if "new" in x.values:
+        # if "new" in x:
         # This logic is here just to be safe. It will be hit if we create a new line
         # and in a subsequent step extend it which is not what normally happens.
         # All the new bits are caught likely by the first ``if``.
@@ -261,23 +262,23 @@ def _loops_and_non_loops(edges: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame]:
 
 
 def remove_false_nodes(
-    gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str = "first", **kwargs
-):
+    gdf: gpd.GeoSeries | gpd.GeoDataFrame, aggfunc: str | dict = "first", **kwargs
+) -> gpd.GeoSeries | gpd.GeoDataFrame:
     """Reimplementation of ``momepy.remove_false_nodes()`` that preserves attributes.
 
     Parameters
     ----------
-    gdf : gpd.GeoSeries | gpd.GeoDataFrame
+    gdf : geopandas.GeoSeries | geopandas.GeoDataFrame
         Input edgelines process. If any edges are ``MultiLineString`` they
         will be exploded into constituent ``LineString`` components.
-    aggfunc : str = 'first'
+    aggfunc : str | dict = 'first'
         Aggregate function for processing non-spatial component.
     **kwargs
         Keyword arguments for ``aggfunc``.
 
     Returns
     -------
-    gpd.GeoSeries | gpd.GeoDataFrame
+    geopandas.GeoSeries | geopandas.GeoDataFrame
        The original input ``gdf`` if only 1 edgeline, otherwise the processed
        edgeline without interstitial nodes.
 
