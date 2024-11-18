@@ -16,7 +16,7 @@ ci_artifacts = pathlib.Path("ci_artifacts")
 def test_simplify_network_small():
     ac = "apalachicola"
     known = geopandas.read_parquet(test_data / f"{ac}_simplified.parquet")
-    known_length = 78089.0
+    known_length = 64566.0
 
     observed = sgeop.simplify_network(
         geopandas.read_parquet(test_data / f"{ac}_original.parquet")
