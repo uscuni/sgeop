@@ -786,3 +786,53 @@ class TestRotateLoopCoords:
             edges[~edges.is_ring],
         )
         numpy.testing.assert_array_equal(observed, self.known)
+
+
+def test_fix_topology():
+    p20 = shapely.Point(2, 0)
+    p30 = shapely.Point(3, 0)
+    p40 = shapely.Point(4, 0)
+    p21 = shapely.Point(2, 1)
+    p41 = shapely.Point(4, 1)
+
+    p251 = shapely.Point(2.5, 1)
+    p215 = shapely.Point(2, 1.5)
+    p315 = shapely.Point(3, 1.5)
+
+    p27508 = shapely.Point(2.75, 0.8)
+    p32508 = shapely.Point(3.25, 0.8)
+    p31 = shapely.Point(3, 1)
+
+    line2040 = shapely.LineString((p20, p40))
+    line41313041 = shapely.LineString((p41, p21, p30, p41))
+    line251215315251 = shapely.LineString((p215, p315, p251, p215))
+    line275083250831 = shapely.LineString((p27508, p32508, p31, p27508))
+
+    known = geopandas.GeoDataFrame(
+        {
+            "geometry": [
+                shapely.LineString((p251, p215, p315, p251)),
+                shapely.LineString((p31, p27508, p32508, p31)),
+                shapely.LineString((p30, p41, p31)),
+                shapely.LineString((p20, p30)),
+                shapely.LineString((p30, p40)),
+                shapely.LineString((p251, p21, p30)),
+                shapely.LineString((p31, p251)),
+            ],
+            "_status": ["changed"] * 7,
+        }
+    )
+
+    observed = sgeop.nodes.fix_topology(
+        geopandas.GeoDataFrame(
+            geometry=[
+                line2040,
+                line2040,
+                line41313041,
+                line251215315251,
+                line275083250831,
+            ]
+        )
+    )
+
+    geopandas.testing.assert_geodataframe_equal(observed, known)

@@ -338,7 +338,7 @@ def remove_false_nodes(
             fixed_index.append(ix)
 
     aggregated.loc[loops.index[fixed_index], aggregated.geometry.name] = fixed_loops
-    return aggregated
+    return aggregated.reset_index(drop=True)
 
 
 def _rotate_loop_coords(
