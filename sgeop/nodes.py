@@ -443,8 +443,8 @@ def consolidate_nodes(
 
     if preserve_ends:
         # keep at least one meter of original geometry around each end
-        ends = nodes[nodes.degree == 1].buffer(1)
-        nodes = nodes[nodes.degree > 1].copy()
+        ends = nodes[nodes["degree"] == 1].buffer(1)
+        nodes = nodes[nodes["degree"] > 1].copy()
 
         # if all we have are ends, return the original
         # - this is generally when called from within ``geometry._consolidate()``
@@ -455,7 +455,7 @@ def consolidate_nodes(
     # get clusters of nodes which should be consolidated
     db = DBSCAN(eps=tolerance, min_samples=2).fit(nodes.get_coordinates())
     nodes["lab"] = db.labels_
-    change = nodes[nodes.lab > -1]
+    change = nodes[nodes["lab"] > -1]
 
     # no change needed, return the original
     if change.empty:
@@ -472,7 +472,7 @@ def consolidate_nodes(
     spiders = []
     midpoints = []
 
-    clusters = change.dissolve(change.lab)
+    clusters = change.dissolve(change["lab"])
 
     # TODO: not optimal but avoids some MultiLineStrings but not all
     cookies = clusters.buffer(tolerance / 2).convex_hull
@@ -482,7 +482,6 @@ def consolidate_nodes(
 
     for cluster, cookie in zip(clusters.geometry, cookies.geometry, strict=True):
         inds = geom.sindex.query(cookie, predicate="intersects")
-        pts = geom.iloc[inds].intersection(cookie.boundary).get_coordinates()
         pts = shapely.get_coordinates(geom.iloc[inds].intersection(cookie.boundary))
         if pts.shape[0] > 0:
             # TODO: this may result in MultiLineString - we need to avoid that
