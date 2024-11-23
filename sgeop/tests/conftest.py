@@ -77,7 +77,7 @@ def geom_test(
     geoms1 = collection1.geometry.normalize()
     geoms2 = collection2.geometry.normalize()
 
-    if aoi.startswith("apalachicola"):
+    if aoi and aoi.startswith("apalachicola"):
         # Varied index order across OSs.
         # See [https://github.com/uscuni/sgeop/pull/104#issuecomment-2495572388]
         geoms1 = geoms1.sort_values().reset_index(drop=True)
