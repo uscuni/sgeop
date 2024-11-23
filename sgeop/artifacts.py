@@ -30,7 +30,7 @@ def get_artifacts(
     area_threshold_circles: float = 5e4,
     isoareal_threshold_circles_enclosed: float = 0.75,
     isoperimetric_threshold_circles_touching: float = 0.9,
-    exclusion_mask: None | gpd.GeoDataFrame = None,
+    exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
 ) -> tuple[gpd.GeoDataFrame, float]:
     """Extract face artifacts and return the FAI threshold.
@@ -60,7 +60,7 @@ def get_artifacts(
     isoperimetric_threshold_circles_touching : float = 0.9
         Isoperimetric theshold for enclosed circle touching.
         See ``esda.shape.isoperimetric_quotient``.
-    exclusion_mask : None | gpd.GeoDataFrame = None
+    exclusion_mask : None | gpd.GeoSeries = None
         Polygons used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
