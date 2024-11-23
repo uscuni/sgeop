@@ -66,19 +66,7 @@ KNOWN_BAD_GEOMS = {
         507,
         508,
     ],
-    "apalachicola_exclusion_mask": [
-        509,
-        510,
-        511,
-        512,
-        513,
-        514,
-        515,
-        516,
-        517,
-        518,
-        519,
-    ],
+    "apalachicola_exclusion_mask": [],
 }
 ####################################################
 
@@ -117,6 +105,10 @@ def geom_test(
 
     geoms1 = collection1.geometry.normalize()
     geoms2 = collection2.geometry.normalize()
+
+    if aoi == "apalachicola_exclusion_mask":
+        geoms1 = geoms1.sort_values().reset_index(drop=True)
+        geoms2 = geoms2.sort_values().reset_index(drop=True)
 
     try:
         assert shapely.equals_exact(geoms1, geoms2, tolerance=tolerance).all()

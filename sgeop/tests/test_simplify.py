@@ -15,13 +15,13 @@ ci_artifacts = pathlib.Path("ci_artifacts")
 
 
 @pytest.mark.parametrize(
-    "scenario,known_length",
+    "scenario,tol,known_length",
     [
-        ("standard", 64566.0),
-        ("exclusion_mask", 65765.0),
+        ("standard", 1.5, 64566.0),
+        ("exclusion_mask", 1.05, 65765.0),
     ],
 )
-def test_simplify_network_small(scenario, known_length):
+def test_simplify_network_small(scenario, tol, known_length):
     ac = "apalachicola"
 
     original = geopandas.read_parquet(test_data / f"{ac}_original.parquet")
@@ -67,7 +67,7 @@ def test_simplify_network_small(scenario, known_length):
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
 
-    pytest.geom_test(known, observed, tolerance=1.5, aoi=f"{ac}_{scenario}")
+    pytest.geom_test(known, observed, tolerance=tol, aoi=f"{ac}_{scenario}")
 
 
 @pytest.mark.parametrize(
