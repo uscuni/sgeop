@@ -24,6 +24,8 @@ geometry_collection = (
 
 ####################################################
 # see:
+#   - gh#106
+#   - gh#102
 #   - gh#77
 #   - gh#75
 #   - gh#74
@@ -34,38 +36,7 @@ KNOWN_BAD_GEOMS = {
     "douala_809": [],
     "liege_1656": [921],
     "slc_4881": [1144, 1146],
-    "apalachicola_standard": [
-        # 468,
-        # 469,
-        # 470,
-        # 471,
-        # 472,
-        # 473,
-        # 474,
-        # 475,
-        # 476,
-        # 477,
-        # 478,
-        # 479,
-        # 480,
-        # 481,
-        # 482,
-        # 494,
-        # 495,
-        # 496,
-        # 497,
-        # 498,
-        # 499,
-        # 500,
-        # 501,
-        # 502,
-        # 503,
-        # 504,
-        # 505,
-        # 506,
-        # 507,
-        # 508,
-    ],
+    "apalachicola_standard": [324],
     "apalachicola_exclusion_mask": [],
 }
 ####################################################
@@ -106,7 +77,7 @@ def geom_test(
     geoms1 = collection1.geometry.normalize()
     geoms2 = collection2.geometry.normalize()
 
-    if aoi in ["apalachicola_exclusion_mask", "apalachicola_standard"]:
+    if aoi.startswith("apalachicola"):
         # Varied index order across OSs.
         # See [https://github.com/uscuni/sgeop/pull/104#issuecomment-2495572388]
         geoms1 = geoms1.sort_values().reset_index(drop=True)
@@ -127,7 +98,8 @@ def geom_test(
                     "n_coords": {
                         "g1": shapely.get_coordinates(g1).shape[0],
                         "g2": shapely.get_coordinates(g2).shape[0],
-                    }
+                    },
+                    "length": {"g1": g1.length, "g2": g2.length},
                 }
         if unexpected_bad:
             raise AssertionError(
