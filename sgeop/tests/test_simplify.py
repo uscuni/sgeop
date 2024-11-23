@@ -59,7 +59,7 @@ def test_simplify_network_small(scenario, known_length):
     # storing GH artifacts
     artifact_dir = ci_artifacts / ac
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    observed.to_parquet(artifact_dir / "simplified.parquet")
+    observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
 
     assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
@@ -67,7 +67,7 @@ def test_simplify_network_small(scenario, known_length):
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
 
-    pytest.geom_test(known, observed, tolerance=1.5, aoi=ac)
+    pytest.geom_test(known, observed, tolerance=1.5, aoi=f"{ac}_simplified_{scenario}")
 
 
 @pytest.mark.parametrize(
