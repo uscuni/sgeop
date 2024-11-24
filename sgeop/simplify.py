@@ -486,7 +486,7 @@ def simplify_network(
     eps: float = 1e-4,
     exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
-):
+) -> gpd.GeoDataFrame:
     """Top-level workflow for simplifying networks. The input raw road network data is
     first preprocessed (topological corrections & node consolidation) before two
     iterations of artifact detection and simplification. For further information on
