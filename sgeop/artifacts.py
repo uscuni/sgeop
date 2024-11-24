@@ -22,29 +22,74 @@ logger = logging.getLogger(__name__)
 
 
 def get_artifacts(
-    roads,
-    threshold=None,
-    threshold_fallback=None,
-    area_threshold_blocks=1e5,
-    isoareal_threshold_blocks=0.5,
-    area_threshold_circles=5e4,
-    isoareal_threshold_circles_enclosed=0.75,
-    isoperimetric_threshold_circles_touching=0.9,
-    exclusion_mask=None,
-    predicate="intersects",
-):
+    roads: gpd.GeoDataFrame,
+    threshold: None | float = None,
+    threshold_fallback: None | float = None,
+    area_threshold_blocks: float = 1e5,
+    isoareal_threshold_blocks: float = 0.5,
+    area_threshold_circles: float = 5e4,
+    isoareal_threshold_circles_enclosed: float = 0.75,
+    isoperimetric_threshold_circles_touching: float = 0.9,
+    exclusion_mask: None | gpd.GeoSeries = None,
+    predicate: str = "intersects",
+) -> tuple[gpd.GeoDataFrame, float]:
+    """Extract face artifacts and return the FAI threshold.
+    See :cite:`fleischmann2023` for more details.
+
+    Parameters
+    ----------
+    roads : geopandas.GeoDataFrame
+        Input roads that have been preprocessed.
+    threshold : None | float = None
+        First option threshold used to determine face artifacts. See the
+        ``artifact_threshold`` keyword argument in ``simplify.simplify_network()``.
+    threshold_fallback : None | float = None
+        Second option threshold used to determine face artifacts. See the
+        ``artifact_threshold_fallback`` keyword argument in
+        ``simplify.simplify_network()``.
+    area_threshold_blocks : float = 1e5
+        Areal theshold for block detection.
+    isoareal_threshold_blocks : float = 0.5
+        Isoareal theshold for block detection.
+        See ``esda.shape.isoareal_quotient``.
+    area_threshold_circles : float = 5e4
+        Areal theshold for circle detection.
+    isoareal_threshold_circles_enclosed : float = 0.75
+        Isoareal theshold for enclosed circle detection.
+        See ``esda.shape.isoareal_quotient``.
+    isoperimetric_threshold_circles_touching : float = 0.9
+        Isoperimetric theshold for enclosed circle touching.
+        See ``esda.shape.isoperimetric_quotient``.
+    exclusion_mask : None | gpd.GeoSeries = None
+        Polygons used to determine face artifacts to exclude from returned output.
+    predicate : str = 'intersects'
+        The spatial predicate used to exclude face artifacts from returned output.
+
+    Returns
+    -------
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    threshold : float
+        Resultant artifact detection threshold from ``momepy.FaceArtifacts.threshold``.
+        May also be the returned value of ``threshold`` or ``threshold_fallback``.
+    """
+
+    def _relate(neighs: tuple, cond: callable) -> bool:
+        """Helper for relating artifacts."""
+        return len(neighs) > 0 and cond(polys.loc[list(neighs), "is_artifact"])
+
     with warnings.catch_warnings():  # the second loop likey won't find threshold
         warnings.filterwarnings("ignore", message="No threshold found")
         fas = momepy.FaceArtifacts(roads)
-    polygons = fas.polygons.set_crs(roads.crs)
+    polys = fas.polygons.set_crs(roads.crs)
 
     # rook neighbors
-    rook = graph.Graph.build_contiguity(polygons, rook=True)
-    polygons["neighbors"] = rook.neighbors
+    rook = graph.Graph.build_contiguity(polys, rook=True)
+    polys["neighbors"] = rook.neighbors
 
-    # polygons are not artifacts,
-    polygons["is_artifact"] = False
-    # unless the fai is below the threshold,
+    # polygons are not artifacts...
+    polys["is_artifact"] = False
+    # ...unless the fai is below the threshold
     if threshold is None:
         if not fas.threshold and threshold_fallback:
             threshold = threshold_fallback
@@ -55,67 +100,57 @@ def get_artifacts(
             )
         else:
             threshold = fas.threshold
-    polygons.loc[polygons.face_artifact_index < threshold, "is_artifact"] = True
+    polys.loc[polys["face_artifact_index"] < threshold, "is_artifact"] = True
 
-    # compute area and isoareal quotient:
-    polygons["area_sqm"] = polygons.area
-    polygons["isoareal_index"] = shape.isoareal_quotient(polygons.geometry)
-    polygons["isoperimetric_quotient"] = shape.isoperimetric_quotient(polygons.geometry)
+    # compute area, isoareal quotient, and isoperimetric quotient
+    polys["area_sqm"] = polys.area
+    polys["isoareal_index"] = shape.isoareal_quotient(polys.geometry)
+    polys["isoperimetric_quotient"] = shape.isoperimetric_quotient(polys.geometry)
 
-    # iterate (to account for artifacts that become enclosed or touching
-    # by new designation)
+    is_artifact = polys["is_artifact"]
+    area = polys["area_sqm"]
+    isoareal = polys["isoareal_index"]
+    isoperimetric = polys["isoperimetric_quotient"]
+
+    # iterate to account for artifacts that become
+    # enclosed or touching by new designation
     while True:
         # count number of artifacts to break while loop
         # when no new artifacts are added
-        artifact_count_before = sum(polygons.is_artifact)
+        artifact_count_before = sum(is_artifact)
 
         # polygons that are enclosed by artifacts (at this moment)
-        polygons["enclosed"] = polygons.apply(
-            lambda x: len(x.neighbors) > 0
-            and all(polygons.loc[list(x.neighbors), "is_artifact"]),
-            axis=1,
-        )
+        polys["enclosed"] = polys.apply(lambda x: _relate(x["neighbors"], all), axis=1)
 
         # polygons that are touching artifacts (at this moment)
-        polygons["touching"] = polygons.apply(
-            lambda x: len(x.neighbors) > 0
-            and any(polygons.loc[list(x.neighbors), "is_artifact"]),
-            axis=1,
-        )
+        polys["touching"] = polys.apply(lambda x: _relate(x["neighbors"], any), axis=1)
 
         # "block" like artifacts (that are not too big or too rectangular)
         # TODO: there are still some dual carriageway - type blocks
         # TODO: that slip through this one
-        polygons.loc[
-            ((polygons.enclosed) | (polygons.touching))
-            & (polygons.area_sqm < area_threshold_blocks)
-            & (polygons.isoareal_index < isoareal_threshold_blocks),
-            "is_artifact",
-        ] = True
+        cond_geom = polys["enclosed"] | polys["touching"]
+        cond_area = area < area_threshold_blocks
+        cond_metric = isoareal < isoareal_threshold_blocks
+        polys.loc[cond_geom & cond_area & cond_metric, "is_artifact"] = True
 
         # "circle" like artifacts (that are small and quite circular)
-        polygons.loc[
-            (polygons.enclosed)
-            & (polygons.area_sqm < area_threshold_circles)
-            & (polygons.isoareal_index > isoareal_threshold_circles_enclosed),
-            "is_artifact",
-        ] = True
+        # -- circles enclosed
+        cond_geom = polys["enclosed"]
+        cond_area = area < area_threshold_circles
+        cond_metric = isoareal > isoareal_threshold_circles_enclosed
+        polys.loc[cond_geom & cond_area & cond_metric, "is_artifact"] = True
 
-        polygons.loc[
-            (polygons.touching)
-            & (polygons.area_sqm < area_threshold_circles)
-            & (
-                polygons.isoperimetric_quotient
-                > isoperimetric_threshold_circles_touching
-            ),
-            "is_artifact",
-        ] = True
+        # -- circles touching
+        cond_geom = polys["touching"]
+        cond_area = area < area_threshold_circles
+        cond_metric = isoperimetric > isoperimetric_threshold_circles_touching
+        polys.loc[cond_geom & cond_area & cond_metric, "is_artifact"] = True
 
-        artifact_count_after = sum(polygons.is_artifact)
+        artifact_count_after = sum(is_artifact)
         if artifact_count_after == artifact_count_before:
             break
 
-    artifacts = polygons[polygons.is_artifact][["geometry"]].reset_index(drop=True)
+    artifacts = polys[is_artifact][["geometry"]].reset_index(drop=True)
     artifacts["id"] = artifacts.index
 
     if exclusion_mask is not None:
