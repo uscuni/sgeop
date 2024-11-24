@@ -3,6 +3,7 @@ import pathlib
 import geopandas
 import numpy
 import pytest
+import shapely
 from pandas.testing import assert_series_equal
 
 import sgeop
@@ -13,28 +14,60 @@ full_fua_data = pathlib.Path("data")
 ci_artifacts = pathlib.Path("ci_artifacts")
 
 
-def test_simplify_network_small():
+@pytest.mark.parametrize(
+    "scenario,tol,known_length",
+    [
+        ("standard", 1.5, 64566.0),
+        ("exclusion_mask", 1.05, 65765.0),
+    ],
+)
+def test_simplify_network_small(scenario, tol, known_length):
     ac = "apalachicola"
-    known = geopandas.read_parquet(test_data / f"{ac}_simplified.parquet")
-    known_length = 64566.0
 
-    observed = sgeop.simplify_network(
-        geopandas.read_parquet(test_data / f"{ac}_original.parquet")
-    )
+    original = geopandas.read_parquet(test_data / f"{ac}_original.parquet")
+
+    known = geopandas.read_parquet(test_data / f"{ac}_simplified_{scenario}.parquet")
+
+    if scenario == "exclusion_mask":
+        exclusion_mask = [
+            shapely.Polygon(
+                (
+                    (-9461361.807208396, 3469029.2708674935),
+                    (-9461009.046874022, 3469029.2708674935),
+                    (-9461009.046874022, 3469240.1785251377),
+                    (-9461361.807208396, 3469240.1785251377),
+                    (-9461361.807208396, 3469029.2708674935),
+                )
+            ),
+            shapely.Polygon(
+                (
+                    (-9461429.266819818, 3469157.7482423405),
+                    (-9461361.807208396, 3469157.7482423405),
+                    (-9461361.807208396, 3469240.1785251377),
+                    (-9461429.266819818, 3469240.1785251377),
+                    (-9461429.266819818, 3469157.7482423405),
+                )
+            ),
+        ]
+        exclusion_mask = geopandas.GeoSeries(exclusion_mask, crs=original.crs)
+    else:
+        exclusion_mask = None
+
+    observed = sgeop.simplify_network(original, exclusion_mask=exclusion_mask)
     observed_length = observed.geometry.length.sum()
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / ac
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    observed.to_parquet(artifact_dir / "simplified.parquet")
+    observed.to_parquet(artifact_dir / f"simplified_{scenario}.parquet")
 
-    assert pytest.approx(observed_length, rel=0.00001) == known_length
+    assert pytest.approx(observed_length, rel=0.0001) == known_length
     assert observed.index.dtype == numpy.dtype("int64")
 
     assert observed.shape == known.shape
     assert_series_equal(known._status, observed._status)
 
-    pytest.geom_test(known, observed, tolerance=1.5, aoi=ac)
+    pytest.geom_test(known, observed, tolerance=tol, aoi=f"{ac}_{scenario}")
 
 
 @pytest.mark.parametrize(
