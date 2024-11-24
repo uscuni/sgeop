@@ -512,6 +512,9 @@ def simplify_network(
     simplification_factor : float | int = 2
         The factor by which singles, pairs, and clusters are simplified.
         This value is multiplied by ``max_segment_length``.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation within the
+        ``geometry.voronoi_skeleton()``.
     artifact_threshold : None | float | int = None
         First option threshold used to determine face artifacts.
         Passed into ``artifacts.get_artifacts()``.
