@@ -619,9 +619,8 @@ def n1_g1_identical(
     min_dangle_length=10,
     clip_limit: int = 2,
 ):
-    """If there is only 1 continuity group {C, E, S} and only 1 node
-
-    - drop the edge
+    """Determine lines within artifacts to drop & add when dealing
+    with 1 node and 1 continuity group ({C, E, S})
 
     Parameters
     ----------
