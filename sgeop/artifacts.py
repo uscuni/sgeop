@@ -610,27 +610,32 @@ def loop(
 
 
 def n1_g1_identical(
-    edges,
+    edges: gpd.GeoDataFrame,
     *,
-    to_drop,
-    to_add,
-    geom,
-    max_segment_length=1,
-    min_dangle_length=10,
+    to_drop: list,
+    to_add: list,
+    geom: shapely.Polygon,
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 10,
     clip_limit: int = 2,
-):
-    """Determine lines within artifacts to drop & add when dealing
-    with 1 node and 1 continuity group ({C, E, S})
+) -> None:
+    """Determine lines within artifacts to drop & add when dealing with typologies
+    of 1 node and 1 continuity group – ``{C, E, S}``.
 
     Parameters
     ----------
-    edges : GeoDataFrame
-        geometries forming the artifact
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
     to_drop : list
-        list collecting geometries to be dropped
-
-
-
+        List collecting geometries to be dropped.
+    to_add : list
+        List collecting geometries to be added.
+    geom : shapely.Polygon
+        The polygonal representation of the artifact.
+    max_segment_length : ...
+        ...
+    min_dangle_length : ...
+        ...
     clip_limit : None | int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
@@ -640,7 +645,8 @@ def n1_g1_identical(
 
     Returns
     -------
-
+    None
+        ``to_drop`` and ``to_add`` are updated inplace.
     """
 
     to_drop.append(edges.index[0])
@@ -680,34 +686,52 @@ def n1_g1_identical(
 
 
 def nx_gx_identical(
-    edges,
+    edges: gpd.GeoDataFrame,
     *,
-    geom,
-    to_drop,
-    to_add,
-    nodes,
-    angle,
+    geom: shapely.Polygon,
+    to_drop: list,
+    to_add: list,
+    nodes: gpd.GeoSeries,
+    angle: float | int,
     max_segment_length=1,
     clip_limit: int = 2,
     consolidation_tolerance=10,
     eps=1e-4,
-):
+) -> None:
     """If there are  1+ identical continuity groups, and more than 1 node (n>=2)
 
     - drop all of them and link the entry points to the centroid
 
+    Determine lines within artifacts to drop & add when dealing
+    with ....
+
+     – ``{C, E, S}``.
+
+     Here the "identical"
+    refers to identical continuity groups – e.g. ``4CCC, ``5EE``, or ``3SSS``.
+
+
+    It is used when there are at least two nodes, one or more continuity
+    groups but all edges have the same position in their respective
+    continuity groups. i.e they all are E (ending), or S (single). It
+    does not mean that all edges belong to a single continuity group.
+
+
+
+
+
     Parameters
     ----------
-    edges : GeoDataFrame
-        geometries forming the artifact
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
     geom : shapely.Polygon
-        polygonal representation of the artifact
+        The polygonal representation of the artifact.
     to_drop : list
-        list collecting geometries to be dropped
+        List collecting geometries to be dropped.
     to_add : list
-        list collecting geometries to be added
-    nodes : GeoSeries
-        nodes forming the artifact
+        List collecting geometries to be added.
+    nodes : geopandas.GeoSeries
+        Node geometries forming the artifact.
 
 
 
@@ -721,7 +745,8 @@ def nx_gx_identical(
 
     Returns
     -------
-
+    None
+        ``to_drop`` and ``to_add`` are updated inplace.
     """
     centroid = geom.centroid
     relevant_nodes = nodes.geometry.iloc[
@@ -762,8 +787,8 @@ def nx_gx(
     edges,
     *,
     artifact,
-    to_drop,
-    to_add,
+    to_drop: list,
+    to_add: list,
     split_points,
     nodes,
     max_segment_length=1,
@@ -771,7 +796,7 @@ def nx_gx(
     min_dangle_length=10,
     consolidation_tolerance=10,
     eps=1e-4,
-):
+) -> None:
     """
     Drop all but highest hierarchy. If there are unconnected nodes after drop, connect
     to nearest remaining edge or nearest intersection if there are more remaining edges.
@@ -786,6 +811,8 @@ def nx_gx(
 
     Parameters
     ----------
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
 
     clip_limit : int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
@@ -796,7 +823,8 @@ def nx_gx(
 
     Returns
     -------
-
+    None
+        ``to_drop`` and ``to_add`` are updated inplace.
     """
 
     # filter ends
@@ -1099,20 +1127,35 @@ def nx_gx(
 
 
 def nx_gx_cluster(
-    edges,
+    edges: gpd.GeoDataFrame,
     *,
     cluster_geom,
     nodes,
-    to_drop,
-    to_add,
+    to_drop: list,
+    to_add: list,
     max_segment_length=1,
     min_dangle_length=20,
     consolidation_tolerance=10,
     eps=1e-4,
-):
+) -> None:
     """treat an n-artifact cluster: merge all artifact polygons; drop
     all lines fully within the merged polygon; skeletonize and keep only
-    skeletonized edges and connecting nodes"""
+    skeletonized edges and connecting nodes
+
+    Parameters
+    ----------
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
+    cluster_geom : ...
+        ...
+    nodes : ...
+        ...
+
+    Returns
+    -------
+    None
+        ``to_drop`` and ``to_add`` are updated inplace.
+    """
 
     lines_to_drop = edges.iloc[
         edges.sindex.query(cluster_geom.buffer(eps), predicate="contains")
