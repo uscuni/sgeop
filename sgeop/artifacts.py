@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 
 def get_artifacts(
     roads: gpd.GeoDataFrame,
-    threshold: None | float = None,
-    threshold_fallback: None | float = None,
-    area_threshold_blocks: float = 1e5,
-    isoareal_threshold_blocks: float = 0.5,
-    area_threshold_circles: float = 5e4,
-    isoareal_threshold_circles_enclosed: float = 0.75,
-    isoperimetric_threshold_circles_touching: float = 0.9,
+    threshold: None | float | int = None,
+    threshold_fallback: None | float | int = None,
+    area_threshold_blocks: float | int = 1e5,
+    isoareal_threshold_blocks: float | int = 0.5,
+    area_threshold_circles: float | int = 5e4,
+    isoareal_threshold_circles_enclosed: float | int = 0.75,
+    isoperimetric_threshold_circles_touching: float | int = 0.9,
     exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
 ) -> tuple[gpd.GeoDataFrame, float]:
@@ -40,24 +40,24 @@ def get_artifacts(
     ----------
     roads : geopandas.GeoDataFrame
         Input roads that have been preprocessed.
-    threshold : None | float = None
+    threshold : None | float | int = None
         First option threshold used to determine face artifacts. See the
         ``artifact_threshold`` keyword argument in ``simplify.simplify_network()``.
-    threshold_fallback : None | float = None
+    threshold_fallback : None | float | int = None
         Second option threshold used to determine face artifacts. See the
         ``artifact_threshold_fallback`` keyword argument in
         ``simplify.simplify_network()``.
-    area_threshold_blocks : float = 1e5
+    area_threshold_blocks : float | int = 1e5
         Areal theshold for block detection.
-    isoareal_threshold_blocks : float = 0.5
+    isoareal_threshold_blocks : float | int = 0.5
         Isoareal theshold for block detection.
         See ``esda.shape.isoareal_quotient``.
-    area_threshold_circles : float = 5e4
+    area_threshold_circles : float | int = 5e4
         Areal theshold for circle detection.
-    isoareal_threshold_circles_enclosed : float = 0.75
+    isoareal_threshold_circles_enclosed : float | int = 0.75
         Isoareal theshold for enclosed circle detection.
         See ``esda.shape.isoareal_quotient``.
-    isoperimetric_threshold_circles_touching : float = 0.9
+    isoperimetric_threshold_circles_touching : float | int = 0.9
         Isoperimetric theshold for enclosed circle touching.
         See ``esda.shape.isoperimetric_quotient``.
     exclusion_mask : None | gpd.GeoSeries = None
