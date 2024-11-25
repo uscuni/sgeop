@@ -504,49 +504,43 @@ def simplify_network(
         The threshold for determining if linestrings are dangling slivers to be
         removed or not.
     clip_limit : float | int = 2
-        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
-        we clip to fit inside the polygon. To ensure we get a space to make proper
-        topological connections from the linework to the actual points on the edge of
-        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
-        or the radius of maximum inscribed circle, whichever is smaller.
+        Following generation of the Voronoi linework, we clip to fit inside the
+        polygon. To ensure we get a space to make proper topological connections
+        from the linework to the actual points on the edge of the polygon, we clip
+        using a polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
     simplification_factor : float | int = 2
-        The factor by which singles, pairs, and clusters are simplified.
-        This value is multiplied by ``max_segment_length``.
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
     consolidation_tolerance : float | int = 10
-        Tolerance passed to node consolidation within the
-        ``geometry.voronoi_skeleton()``.
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
     artifact_threshold : None | float | int = None
-        First option threshold used to determine face artifacts.
-        Passed into ``artifacts.get_artifacts()``.
+        When ``artifact_threshold`` is passed, the computed value from
+        ``momepy.FaceArtifacts.threshold`` is not used in favor of the
+        given value. This is useful for small networks where artifact
+        detection may fail or become unreliable.
     artifact_threshold_fallback : None | float | int = None
-        Second option threshold used to determine face artifacts.
-        Passed into ``artifacts.get_artifacts()``.
+        If artifact threshold detection fails, this value is used as a fallback.
     area_threshold_blocks : float | int = 1e5
         Areal theshold for block detection.
-        Passed into ``artifacts.get_artifacts()``.
     isoareal_threshold_blocks : float | int = 0.5
         Isoareal theshold for block detection.
         See ``esda.shape.isoareal_quotient``.
-        Passed into ``artifacts.get_artifacts()``.
     area_threshold_circles : float | int = 5e4
         Areal theshold for circle detection.
-        Passed into ``artifacts.get_artifacts()``.
     isoareal_threshold_circles_enclosed : float | int = 0.75
         Isoareal theshold for enclosed circle detection.
         See ``esda.shape.isoareal_quotient``.
-        Passed into ``artifacts.get_artifacts()``.
     isoperimetric_threshold_circles_touching : float | int = 0.9
         Isoperimetric theshold for enclosed circle touching.
         See ``esda.shape.isoperimetric_quotient``.
-        Passed into ``artifacts.get_artifacts()``.
     eps : float = 1e-4
         Tolerance epsilon used in multiple internal geometric operations.
     exclusion_mask : None | geopandas.GeoSeries = None
         Polygons used to determine face artifacts to exclude from returned output.
-        Passed into ``artifacts.get_artifacts()``.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
-        Passed into ``artifacts.get_artifacts()``.
 
     Returns
     -------
