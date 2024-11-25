@@ -506,31 +506,50 @@ def one_remaining_c(
 
 
 def loop(
-    edges,
-    es_mask,
-    highest_hierarchy,
-    artifact,
-    max_segment_length,
-    clip_limit: int,
-    split_points,
-    min_dangle_length,
-    eps=1e-4,
-):
-    """
+    edges: gpd.GeoDataFrame,
+    es_mask: pd.Series,
+    highest_hierarchy: gpd.GeoDataFrame,
+    artifact: gpd.GeoDataFrame,
+    max_segment_length: float | int,
+    clip_limit: float | int,
+    split_points: list,
+    min_dangle_length: float | int,
+    eps: float = 1e-4,
+) -> list:
+    """Determine lines within artifacts to add when dealing with typologies
+    of loops composed of multiple ``C`` continuity strokes.
 
     Parameters
     ----------
-
-    clip_limit : int
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
+    es_mask : pandas.Series
+        A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    clip_limit : float | int
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
+    split_points : list
+        Points to be used for topological corrections.
+    min_dangle_length : float | int
+         The threshold for determining if linestrings are dangling slivers to be
+         removed or not.
+    eps : float = 1e-4
+        Small tolerance epsilon.
 
     Returns
     -------
-
+    to_add : list
+        Linestring geometries to be added.
     """
 
     # check if we need to add a deadend to represent the space
@@ -617,7 +636,7 @@ def n1_g1_identical(
     geom: shapely.Polygon,
     max_segment_length: float | int = 1,
     min_dangle_length: float | int = 10,
-    clip_limit: int = 2,
+    clip_limit: float | int = 2,
 ) -> None:
     """Determine lines within artifacts to drop & add when dealing with typologies
     of 1 node and 1 continuity group – ``{C, E, S}``.
@@ -632,11 +651,13 @@ def n1_g1_identical(
         List collecting geometries to be added.
     geom : shapely.Polygon
         The polygonal representation of the artifact.
-    max_segment_length : ...
-        ...
-    min_dangle_length : ...
-        ...
-    clip_limit : None | int = 2
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    min_dangle_length : float | int = 10
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    clip_limit : None | float | int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
@@ -693,32 +714,21 @@ def nx_gx_identical(
     to_add: list,
     nodes: gpd.GeoSeries,
     angle: float | int,
-    max_segment_length=1,
-    clip_limit: int = 2,
-    consolidation_tolerance=10,
-    eps=1e-4,
+    max_segment_length: float | int = 1,
+    clip_limit: float | int = 2,
+    consolidation_tolerance: float | int = 10,
+    eps: float = 1e-4,
 ) -> None:
-    """If there are  1+ identical continuity groups, and more than 1 node (n>=2)
+    """Determine lines within artifacts to drop & add when dealing with typologies of
+    more than 1 node and 1 or more identical continuity groups – ``{C, E, S}``.
 
-    - drop all of them and link the entry points to the centroid
+    It is used when there are at least two nodes, one or more continuity groups but all
+    edges have the same position in their respective continuity groups. For example,
+    they all are ``E`` (ending), or ``S`` (single). It does not mean that all edges
+    belong to a single continuity group. Here the "identical" refers to identical
+    continuity groups – e.g. ``4CCC, ``5EE``, or ``3SSS``.
 
-    Determine lines within artifacts to drop & add when dealing
-    with ....
-
-     – ``{C, E, S}``.
-
-     Here the "identical"
-    refers to identical continuity groups – e.g. ``4CCC, ``5EE``, or ``3SSS``.
-
-
-    It is used when there are at least two nodes, one or more continuity
-    groups but all edges have the same position in their respective
-    continuity groups. i.e they all are E (ending), or S (single). It
-    does not mean that all edges belong to a single continuity group.
-
-
-
-
+    Drop all of them and link the entry points to a centroid.
 
     Parameters
     ----------
@@ -732,16 +742,24 @@ def nx_gx_identical(
         List collecting geometries to be added.
     nodes : geopandas.GeoSeries
         Node geometries forming the artifact.
-
-
-
-    clip_limit : int = 2
+    angle : float | int
+        Threshold for determination of line intersection angle acuteness.
+        If the angle between two lines is too sharp, replace with a
+        direct connection between the nodes.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    clip_limit : float | int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
-
+    consolidation_tolerance : float | int = 10
+         Tolerance passed to node consolidation within the
+         ``geometry.voronoi_skeleton()``.
+    eps : float = 1e-4
+        Small tolerance epsilon.
 
     Returns
     -------
@@ -767,8 +785,8 @@ def nx_gx_identical(
             consolidation_tolerance=consolidation_tolerance,
         )
         to_add.extend(weld_edges(lines, ignore=relevant_nodes.geometry))
-    # if the angle between two lines is too sharp, replace with a direct connection
-    # between the nodes
+    # if the angle between two lines is too sharp,
+    # replace with a direct connection between the nodes
     elif len(lines) == 2:
         if angle_between_two_lines(lines.iloc[0], lines.iloc[1]) < angle:
             logger.debug(
@@ -784,42 +802,61 @@ def nx_gx_identical(
 
 
 def nx_gx(
-    edges,
+    edges: gpd.GeoDataFrame,
     *,
-    artifact,
+    artifact: gpd.GeoDataFrame,
     to_drop: list,
     to_add: list,
-    split_points,
-    nodes,
-    max_segment_length=1,
-    clip_limit: int = 2,
-    min_dangle_length=10,
-    consolidation_tolerance=10,
-    eps=1e-4,
+    split_points: list,
+    nodes: gpd.GeoSeries,
+    max_segment_length: float | int = 1,
+    clip_limit: float | int = 2,
+    min_dangle_length: float | int = 10,
+    consolidation_tolerance: float | int = 10,
+    eps: float = 1e-4,
 ) -> None:
-    """
+    """Determine lines within artifacts to drop & add when dealing with typologies of
+    2 or more nodes and 2 or more continuity groups – ``{C, E, S}``.
+
     Drop all but highest hierarchy. If there are unconnected nodes after drop, connect
     to nearest remaining edge or nearest intersection if there are more remaining edges.
-    If there three or more of the highest hierarchy, use roundabout solution.
+    If there are three or more of the highest hierarchy, use the roundabout solution.
 
-    If, after dropping, we end up with more than one connected components based on
+    If, after dropping, we end up with more than one connected component based on
     remaining edges, create a connection either as a shortest line between the two or
-    using skeleton if that is not inside or there are 3 or more components.
+    using a skeleton if that is not inside or there are 3 or more components.
 
-    Connection point should ideally be an existing nearest node with degree 4 or above.
-
+    The connection point should ideally be an existing
+    nearest node with degree 4 or above.
 
     Parameters
     ----------
     edges : geopandas.GeoDataFrame
         Line geometries forming the artifact.
-
-    clip_limit : int = 2
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    to_drop : list
+        List collecting geometries to be dropped.
+    to_add : list
+        List collecting geometries to be added.
+    split_points : list
+        Points to be used for topological corrections.
+    nodes : geopandas.GeoSeries
+        Node geometries forming the artifact.
+    clip_limit : float | int = 2
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
+    min_dangle_length : float | int = 10
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    consolidation_tolerance : float | int = 10
+         Tolerance passed to node consolidation within the
+         ``geometry.voronoi_skeleton()``.
+    eps : float = 1e-4
+        Small tolerance epsilon.
 
     Returns
     -------
@@ -830,8 +867,8 @@ def nx_gx(
     # filter ends
     all_ends = edges[edges.coins_end]
 
-    # determine if we have C present or not. Based on that, ensure that we correctly
-    # pick-up the highest hierarchy and drop all lower
+    # determine if we have C present or not. Based on that, ensure that we
+    # correctly pick-up the highest hierarchy and drop all lower
     if artifact.C > 0:
         logger.debug("HIGHEST C")
         # define mask for E and S strokes
@@ -870,8 +907,8 @@ def nx_gx(
     # get nodes that are not on Cs
     remaining_nodes = relevant_nodes.drop(nodes_on_cont)
 
-    # get all remaining geometries and determine if they are all connected or new
-    # connections need to happen
+    # get all remaining geometries and determine if they are all
+    # connected or new connections need to happen
     remaining_geoms = pd.concat([remaining_nodes.geometry, highest_hierarchy.geometry])
     heads_ix, tails_ix = remaining_geoms.sindex.query(
         remaining_geoms, predicate="intersects"
@@ -903,8 +940,8 @@ def nx_gx(
             # Identify nodes on primes
             primes = bd_points[bd_points.duplicated()]
 
-            # For CCSS we need a special case solution if the lenght of S is
-            # significantly shorter than the lenght of C. In that case, Voronoi does not
+            # For CCSS we need a special case solution if the length of S is
+            # significantly shorter than the length of C. In that case, Voronoi does not
             # create shortest connections but a line that is parallel to Cs.
             if (
                 highest_hierarchy.coins_group.nunique() == 2
@@ -937,7 +974,7 @@ def nx_gx(
                     consolidation_tolerance=consolidation_tolerance,
                 )
 
-                # if there are multiple components, limit_distance was too drastic and
+                # If there are multiple components, limit_distance was too drastic and
                 # clipped the skeleton in pieces. Re-do it with a tiny epsilon.
                 # This may cause tiny sharp angles but at least it will be connected.
                 if (
@@ -1078,7 +1115,7 @@ def nx_gx(
         to_add.extend(weld_edges(new_connections, ignore=remaining_nodes.geometry))
 
     # there may be loops or half-loops we are dropping. If they are protruding enough
-    # we want to replace them by a deadend representing their space
+    # we want to replace them by a dead-end representing their space
     elif artifact.C == 1 and (artifact.E + artifact.S) == 1:
         logger.debug("CONDITION is_loop True")
 
@@ -1129,27 +1166,46 @@ def nx_gx(
 def nx_gx_cluster(
     edges: gpd.GeoDataFrame,
     *,
-    cluster_geom,
-    nodes,
+    cluster_geom: gpd.GeoSeries,
+    nodes: gpd.GeoSeries,
     to_drop: list,
     to_add: list,
-    max_segment_length=1,
-    min_dangle_length=20,
-    consolidation_tolerance=10,
-    eps=1e-4,
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 20,
+    consolidation_tolerance: float | int = 10,
+    eps: float = 1e-4,
 ) -> None:
-    """treat an n-artifact cluster: merge all artifact polygons; drop
-    all lines fully within the merged polygon; skeletonize and keep only
-    skeletonized edges and connecting nodes
+    """Determine lines within artifacts to drop & add when dealing with typologies of
+    *clusters* of 2 or more nodes and 2 or more continuity groups – ``{C, E, S}``.
+
+    Here :math:`n`-artifact cluster are treated as follows:
+        * merge all artifact polygons;
+        * drop all lines fully within the merged polygon;
+        * skeletonize and keep only skeletonized edges and connecting nodes
 
     Parameters
     ----------
     edges : geopandas.GeoDataFrame
         Line geometries forming the artifact.
-    cluster_geom : ...
-        ...
-    nodes : ...
-        ...
+    cluster_geom : geopandas.GeoSeries
+        The polygonal representation of the artifact cluster.
+    nodes : geopandas.GeoSeries
+        Node geometries forming the artifact.
+    to_drop : list
+        List collecting geometries to be dropped.
+    to_add : list
+        List collecting geometries to be added.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    min_dangle_length : float | int = 20
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    consolidation_tolerance : float | int = 10
+         Tolerance passed to node consolidation within the
+         ``geometry.voronoi_skeleton()``.
+    eps : float = 1e-4
+        Small tolerance epsilon.
 
     Returns
     -------
