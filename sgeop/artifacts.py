@@ -516,7 +516,7 @@ def loop(
     min_dangle_length: float | int,
     eps: float = 1e-4,
 ) -> list:
-    """Replace an artifact formed by a loop by a single line formed by a subset of the Voronoi skeleton 
+    """Replace an artifact formed by a loop with a single line formed by a subset of the Voronoi skeleton 
 
     Parameters
     ----------
