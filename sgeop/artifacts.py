@@ -443,7 +443,6 @@ def multiple_remaining(
         max_segment_length=max_segment_length,
         secondary_snap_to=highest_hierarchy.geometry,
         clip_limit=clip_limit,
-        # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=consolidation_tolerance,
     )
     split_points.extend(splitters)
@@ -497,7 +496,6 @@ def one_remaining_c(
             snap_to=highest_hierarchy.dissolve("coins_group").geometry,  # snap to Cs
             max_segment_length=max_segment_length,
             clip_limit=clip_limit,
-            # buffer = highest_hierarchy.length.sum() * 1.2
             consolidation_tolerance=consolidation_tolerance,
         )
     split_points.extend(splitters)
@@ -516,7 +514,8 @@ def loop(
     min_dangle_length: float | int,
     eps: float = 1e-4,
 ) -> list:
-    """Replace an artifact formed by a loop with a single line formed by a subset of the Voronoi skeleton 
+    """Replace an artifact formed by a loop with a single line formed
+    by a subset of the Voronoi skeleton.
 
     Parameters
     ----------
@@ -579,7 +578,6 @@ def loop(
         snap_to=snap_to,
         max_segment_length=max_segment_length,
         clip_limit=clip_limit,
-        # buffer = highest_hierarchy.length.sum() * 1.2
         consolidation_tolerance=0,
     )
     split_points.extend(splitters)
@@ -687,7 +685,6 @@ def n1_g1_identical(
         snap_to=[snap_to],
         max_segment_length=max_segment_length,
         clip_limit=clip_limit,
-        # buffer = highest_hierarchy.length.sum() * 1.2
     )
     disjoint = shapely.disjoint(possible_dangle, dropped)
     connecting = shapely.intersects(possible_dangle, snap_to)
@@ -969,7 +966,6 @@ def nx_gx(
                     snap_to=relevant_targets.geometry,  # snap to nodes
                     max_segment_length=max_segment_length,
                     clip_limit=clip_limit,
-                    # buffer = highest_hierarchy.length.sum() * 1.2
                     consolidation_tolerance=consolidation_tolerance,
                 )
 
@@ -989,7 +985,6 @@ def nx_gx(
                         snap_to=relevant_targets.geometry,  # snap to nodes
                         max_segment_length=max_segment_length,
                         clip_limit=eps,
-                        # buffer = highest_hierarchy.length.sum() * 1.2
                         consolidation_tolerance=consolidation_tolerance,
                     )
                 split_points.extend(splitters)
