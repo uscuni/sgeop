@@ -58,9 +58,9 @@ def get_stroke_info(
 
     Parameters
     ----------
-    artifacts : GeoSeries | GeoDataFrame
+    artifacts : geopandas.GeoSeries | geopandas.GeoDataFrame
         Polygons representing the artifacts.
-    roads : GeoSeries | GeoDataFrame
+    roads : geopandas.GeoSeries | geopandas.GeoDataFrame
         LineStrings representing the road network.
 
     Returns

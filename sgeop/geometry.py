@@ -99,11 +99,11 @@ def voronoi_skeleton(
     lines: list | np.ndarray | gpd.GeoSeries,
     poly: None | shapely.Polygon = None,
     snap_to: None | gpd.GeoSeries = None,
-    max_segment_length: int = 1,
+    max_segment_length: float | int = 1,
     buffer: None | float | int = None,
     secondary_snap_to: None | gpd.GeoSeries = None,
-    clip_limit: None | int = 2,
-    consolidation_tolerance: None | float = None,
+    clip_limit: None | float | int = 2,
+    consolidation_tolerance: None | float | int = None,
 ) -> tuple[np.ndarray]:
     """
     Returns average geometry.
@@ -117,20 +117,20 @@ def voronoi_skeleton(
         Polygon enclosed by ``lines``.
     snap_to : None | gpd.GeoSeries = None
         Series of geometries that shall be connected to the skeleton.
-    max_segment_length: int = 1
+    max_segment_length: float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
     buffer : None | float | int = None
         Optional custom buffer distance for dealing with Voronoi infinity issues.
     secondary_snap_to : None | gpd.GeoSeries = None
         Fall-back series of geometries that shall be connected to the skeleton.
-    clip_limit : None | int = 2
+    clip_limit : None | float | int = 2
         Following generation of the Voronoi linework, we clip to fit inside the polygon.
         To ensure we get a space to make proper topological connections from the
         linework to the actual points on the edge of the polygon, we clip using a
         polygon with a negative buffer of ``clip_limit`` or the radius of
         maximum inscribed circle, whichever is smaller.
-    consolidation_tolerance : None | float = None
+    consolidation_tolerance : None | float | int = None
         Tolerance passed to node consolidation within the resulting skeleton.
         If ``None``, no consolidation happens.
 
@@ -291,7 +291,7 @@ def _as_parts(edgelines: np.ndarray) -> np.ndarray:
 
 
 def _consolidate(
-    edgelines: np.ndarray, consolidation_tolerance: float | int
+    edgelines: np.ndarray, consolidation_tolerance: None | float | int
 ) -> np.ndarray:
     """Return ``edgelines`` from consolidated nodes, if criteria met."""
     if consolidation_tolerance and edgelines.shape[0] > 0:
