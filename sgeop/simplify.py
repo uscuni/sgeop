@@ -489,8 +489,15 @@ def simplify_network(
 ) -> gpd.GeoDataFrame:
     """Top-level workflow for simplifying networks. The input raw road network data is
     first preprocessed (topological corrections & node consolidation) before two
-    iterations of artifact detection and simplification. For further information on
-    face artifact detection and extraction see :cite:`fleischmann2023`.
+    iterations of artifact detection and simplification.
+
+    Each iteration of the simplification procedure which includes (1.) the removal
+    of false nodes; (2.) face artifact classification; and (3.) the line-based
+    simplification of face artifacts in the order of single artifacts, pairs of
+    artifacts, clusters of artifacts.
+
+    For further information on face artifact detection and extraction
+    see :cite:`fleischmann2023`.
 
     Parameters
     ----------
@@ -620,30 +627,55 @@ def simplify_network(
 
 
 def simplify_loop(
-    roads,
-    artifacts,
-    max_segment_length=1,
-    min_dangle_length=20,
-    clip_limit: int = 2,
-    simplification_factor=2,
-    consolidation_tolerance=10,
-    eps=1e-4,
-):
-    """
+    roads: gpd.GeoDataFrame,
+    artifacts: gpd.GeoDataFrame,
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 20,
+    clip_limit: float | int = 2,
+    simplification_factor: float | int = 2,
+    consolidation_tolerance: float | int = 10,
+    eps: float = 1e-4,
+) -> gpd.GeoDataFrame:
+    """Perform an iteration of the simplification procedure which includes:
+        1. Removal of false nodes
+        2. Artifact classification
+        3. Simplifying artifacts:
+            - Single artifacts
+            - Pairs of artifacts
+            - Clusters of artifacts
 
     Parameters
     ----------
-
-    clip_limit : int = 2
-        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
-        we clip to fit inside the polygon. To ensure we get a space to make proper
-        topological connections from the linework to the actual points on the edge of
-        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
-        or the radius of maximum inscribed circle, whichever is smaller.
+    roads : geopandas.GeoDataFrame
+        Raw road network data.
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    min_dangle_length : float | int
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    clip_limit : float | int = 2
+        Following generation of the Voronoi linework, we clip to fit inside the
+        polygon. To ensure we get a space to make proper topological connections
+        from the linework to the actual points on the edge of the polygon, we clip
+        using a polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
+    eps : float = 1e-4
+        Tolerance epsilon used in multiple internal geometric operations.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        The road network line data following 1 iteration of simplification.
     """
 
     # Remove edges fully within the artifact (dangles).
