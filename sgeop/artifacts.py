@@ -457,16 +457,18 @@ def one_remaining_c(
     edges: gpd.GeoDataFrame,
     es_mask: pd.Series,
     max_segment_length: float | int,
-    split_points: list
+    split_points: list,
     clip_limit: float | int,
     consolidation_tolerance: float | int = 10,
-):
-    """Resolve situations where there is 1 remaing 
+) -> list:
+    """Resolve situations where there is 1 highest hierarchy and 1 remaining node.
+    This function is called within ``artifacts.nx_gx()``:
+        * first SUBRANCH of BRANCH 3: no target nodes - snapping to ``C``
 
     Parameters
     ----------
     remaining_nodes : geopandas.GeoDataFrame
-        ...
+        Nodes associated with the artifact that are not in group ``C``.
     highest_hierarchy : geopandas.GeoDataFrame
         ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
     artifact : geopandas.GeoDataFrame
@@ -493,7 +495,7 @@ def one_remaining_c(
     Returns
     -------
     geopandas.GeoDataFrame
-        ....
+        Newly resolved edges. The ``split_points`` parameter is also updated inplace.
     """
 
     # create a new connection as the shortest straight line to any C
