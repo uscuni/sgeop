@@ -451,31 +451,49 @@ def multiple_remaining(
 
 
 def one_remaining_c(
-    remaining_nodes,
-    highest_hierarchy,
-    artifact,
-    edges,
-    es_mask,
-    max_segment_length,
-    split_points,
-    clip_limit: int,
-    consolidation_tolerance,
+    remaining_nodes: gpd.GeoDataFrame,
+    highest_hierarchy: gpd.GeoDataFrame,
+    artifact: gpd.GeoDataFrame,
+    edges: gpd.GeoDataFrame,
+    es_mask: pd.Series,
+    max_segment_length: float | int,
+    split_points: list
+    clip_limit: float | int,
+    consolidation_tolerance: float | int = 10,
 ):
-    """
+    """Resolve situations where there is 1 remaing 
 
     Parameters
     ----------
-
-    clip_limit : int
+    remaining_nodes : geopandas.GeoDataFrame
+        ...
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
+    es_mask : pandas.Series
+        A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    split_points : list
+        Points to be used for topological corrections.
+    clip_limit : float | int
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation within the
+        ``geometry.voronoi_skeleton()``.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        ....
     """
 
     # create a new connection as the shortest straight line to any C
@@ -849,8 +867,8 @@ def nx_gx(
         The threshold for determining if linestrings are dangling slivers to be
         removed or not.
     consolidation_tolerance : float | int = 10
-         Tolerance passed to node consolidation within the
-         ``geometry.voronoi_skeleton()``.
+        Tolerance passed to node consolidation within the
+        ``geometry.voronoi_skeleton()``.
     eps : float = 1e-4
         Small tolerance epsilon.
 
