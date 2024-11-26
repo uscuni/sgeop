@@ -469,39 +469,83 @@ def get_solution(group, roads):
 
 
 def simplify_network(
-    roads,
+    roads: gpd.GeoDataFrame,
     *,
-    max_segment_length=1,
-    min_dangle_length=20,
-    clip_limit: int = 2,
-    simplification_factor=2,
-    consolidation_tolerance=10,
-    artifact_threshold=None,
-    artifact_threshold_fallback=None,
-    area_threshold_blocks=1e5,
-    isoareal_threshold_blocks=0.5,
-    area_threshold_circles=5e4,
-    isoareal_threshold_circles_enclosed=0.75,
-    isoperimetric_threshold_circles_touching=0.9,
-    eps=1e-4,
-    exclusion_mask=None,
-    predicate="intersects",
-):
-    """
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 20,
+    clip_limit: float | int = 2,
+    simplification_factor: float | int = 2,
+    consolidation_tolerance: float | int = 10,
+    artifact_threshold: None | float | int = None,
+    artifact_threshold_fallback: None | float | int = None,
+    area_threshold_blocks: float | int = 1e5,
+    isoareal_threshold_blocks: float | int = 0.5,
+    area_threshold_circles: float | int = 5e4,
+    isoareal_threshold_circles_enclosed: float | int = 0.75,
+    isoperimetric_threshold_circles_touching: float | int = 0.9,
+    eps: float = 1e-4,
+    exclusion_mask: None | gpd.GeoSeries = None,
+    predicate: str = "intersects",
+) -> gpd.GeoDataFrame:
+    """Top-level workflow for simplifying networks. The input raw road network data is
+    first preprocessed (topological corrections & node consolidation) before two
+    iterations of artifact detection and simplification. For further information on
+    face artifact detection and extraction see :cite:`fleischmann2023`.
 
     Parameters
     ----------
-
-    clip_limit : int = 2
-        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
-        we clip to fit inside the polygon. To ensure we get a space to make proper
-        topological connections from the linework to the actual points on the edge of
-        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
-        or the radius of maximum inscribed circle, whichever is smaller.
+    roads : geopandas.GeoDataFrame
+        Raw road network data.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    min_dangle_length : float | int
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    clip_limit : float | int = 2
+        Following generation of the Voronoi linework, we clip to fit inside the
+        polygon. To ensure we get a space to make proper topological connections
+        from the linework to the actual points on the edge of the polygon, we clip
+        using a polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
+    artifact_threshold : None | float | int = None
+        When ``artifact_threshold`` is passed, the computed value from
+        ``momepy.FaceArtifacts.threshold`` is not used in favor of the
+        given value. This is useful for small networks where artifact
+        detection may fail or become unreliable.
+    artifact_threshold_fallback : None | float | int = None
+        If artifact threshold detection fails, this value is used as a fallback.
+    area_threshold_blocks : float | int = 1e5
+        Areal theshold for block detection.
+    isoareal_threshold_blocks : float | int = 0.5
+        Isoareal theshold for block detection.
+        See ``esda.shape.isoareal_quotient``.
+    area_threshold_circles : float | int = 5e4
+        Areal theshold for circle detection.
+    isoareal_threshold_circles_enclosed : float | int = 0.75
+        Isoareal theshold for enclosed circle detection.
+        See ``esda.shape.isoareal_quotient``.
+    isoperimetric_threshold_circles_touching : float | int = 0.9
+        Isoperimetric theshold for enclosed circle touching.
+        See ``esda.shape.isoperimetric_quotient``.
+    eps : float = 1e-4
+        Tolerance epsilon used in multiple internal geometric operations.
+    exclusion_mask : None | geopandas.GeoSeries = None
+        Polygons used to determine face artifacts to exclude from returned output.
+    predicate : str = 'intersects'
+        The spatial predicate used to exclude face artifacts from returned output.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        The final, simplified road network line data.
     """
 
     roads = fix_topology(roads, eps=eps)
