@@ -28,6 +28,34 @@ from .nodes import (
 logger = logging.getLogger(__name__)
 
 
+def _prep_single_paired(step, roads, artifacts, eps):
+    """ """
+
+    # Get nodes from the network.
+    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+
+    if step == "singletons":
+        node_geom = nodes.geometry
+        sindex_kwargs = {"predicate": "dwithin", "distance": eps}
+    else:
+        node_geom = nodes.buffer(0.1)
+        sindex_kwargs = {"predicate": "intersects"}
+
+    # Link nodes to artifacts
+    node_idx, artifact_idx = artifacts.sindex.query(node_geom, **sindex_kwargs)
+
+    intersects = sparse.coo_array(
+        ([True] * len(node_idx), (node_idx, artifact_idx)),
+        shape=(len(nodes), len(artifacts)),
+        dtype=np.bool_,
+    )
+
+    ## Compute number of nodes per artifact
+    artifacts["node_count"] = intersects.sum(axis=0)
+
+    return nodes, node_idx, artifact_idx, artifacts
+
+
 def simplify_singletons(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
@@ -88,24 +116,12 @@ def simplify_singletons(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following singletons.
+        The road network line data following the singleton procedure.
     """
 
-    # Get nodes from the network.
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
-
-    # Link nodes to artifacts
-    node_idx, artifact_idx = artifacts.sindex.query(
-        nodes.geometry, predicate="dwithin", distance=eps
+    nodes, node_idx, artifact_idx, artifacts = _prep_single_paired(
+        "singletons", roads, artifacts, eps
     )
-    intersects = sparse.coo_array(
-        ([True] * len(node_idx), (node_idx, artifact_idx)),
-        shape=(len(nodes), len(artifacts)),
-        dtype=np.bool_,
-    )
-
-    # Compute number of nodes per artifact
-    artifacts["node_count"] = intersects.sum(axis=0)
 
     # Compute number of stroke groups per artifact
     if compute_coins:
@@ -226,31 +242,73 @@ def simplify_singletons(
 
 
 def simplify_pairs(
-    artifacts,
-    roads,
-    max_segment_length=1,
-    min_dangle_length=20,
-    clip_limit: int = 2,
-    simplification_factor=2,
-    consolidation_tolerance=10,
-):
-    """
+    artifacts: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 20,
+    clip_limit: float | int = 2,
+    simplification_factor: float | int = 2,
+    consolidation_tolerance: float | int = 10,
+) -> gpd.GeoDataFrame:
+    """Simplification of pairs of face artifacts – the second simplification step in
+    the procedure detailed in ``simplify.simplify_loop()``.
+
+
+
+
+    This process extracts nodes from network edges before computing and labeling
+    face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the
+    constituent road geometries.
+
+
+
+
+    Next, the artifacts' constituent line geometries are either dropped or added in
+    the following order of typologies:
+        1. 1 node and 1 continuity group
+        2. more than 1 node and 1 or more identical continuity groups
+        3. 2 or more nodes and 2 or more continuity groups
+
+    Non-planar geometries are ignored.
+
+
+
+
+
 
     Parameters
     ----------
-
-    clip_limit : int = 2
-        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
-        we clip to fit inside the polygon. To ensure we get a space to make proper
-        topological connections from the linework to the actual points on the edge of
-        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
-        or the radius of maximum inscribed circle, whichever is smaller.
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    roads : geopandas.GeoDataFrame
+        Preprocessed road network data.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    min_dangle_length : float | int = 20
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    clip_limit : float | int = 2
+        Following generation of the Voronoi linework, we clip to fit inside the
+        polygon. To ensure we get a space to make proper topological connections
+        from the linework to the actual points on the edge of the polygon, we clip
+        using a polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        The road network line data following the pairs procedure.
     """
 
+    """
     # Get nodes from the network.
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
@@ -266,6 +324,43 @@ def simplify_pairs(
 
     # Compute number of nodes per artifact
     artifacts["node_count"] = intersects.sum(axis=0)
+
+    # Compute number of stroke groups per artifact
+    roads, _ = continuity(roads)
+    strokes, c_, e_, s_ = get_stroke_info(artifacts, roads)
+
+    artifacts["stroke_count"] = strokes
+    artifacts["C"] = c_
+    artifacts["E"] = e_
+    artifacts["S"] = s_
+
+    # Filter artifacts caused by non-planar intersections.
+    artifacts["non_planar"] = artifacts["stroke_count"] > artifacts["node_count"]
+    a_idx, _ = roads.sindex.query(artifacts.geometry.boundary, predicate="overlaps")
+    artifacts.loc[artifacts.index[np.unique(a_idx)], "non_planar"] = True
+    """
+
+    # artifacts = _prep_single_paired("pairs", roads, artifacts, None, False)
+
+    # nodes = _prep_single_paired("pairs", roads, artifacts, None, False)
+
+    nodes, node_idx, artifact_idx, artifacts = _prep_single_paired(
+        "pairs", roads, artifacts, None
+    )
+
+    # Link nodes to artifacts
+    # node_idx, artifact_idx = artifacts.sindex.query(
+    #    nodes.buffer(0.1), predicate="intersects"
+    # )
+
+    # intersects = sparse.coo_array(
+    #    ([True] * len(node_idx), (node_idx, artifact_idx)),
+    #    shape=(len(nodes), len(artifacts)),
+    #    dtype=np.bool_,
+    # )
+    #
+    ## Compute number of nodes per artifact
+    # artifacts["node_count"] = intersects.sum(axis=0)
 
     # Compute number of stroke groups per artifact
     roads, _ = continuity(roads)
