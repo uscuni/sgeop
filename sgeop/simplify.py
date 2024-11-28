@@ -687,7 +687,7 @@ def simplify_network(
         eps=eps,
     )
 
-    # this is potentially fixing some minor erroneous edges coming from Voronoi
+    # This is potentially fixing some minor erroneous edges coming from Voronoi
     new_roads = induce_nodes(new_roads, eps=eps)
     new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
 
@@ -717,7 +717,7 @@ def simplify_network(
         eps=eps,
     )
 
-    # this is potentially fixing some minor erroneous edges coming from Voronoi
+    # This is potentially fixing some minor erroneous edges coming from Voronoi
     final_roads = induce_nodes(final_roads, eps=eps)
     final_roads = final_roads[~final_roads.geometry.normalize().duplicated()].copy()
 
@@ -778,13 +778,14 @@ def simplify_loop(
 
     # Remove edges fully within the artifact (dangles).
     _, r_idx = roads.sindex.query(artifacts.geometry, predicate="contains")
-    roads = remove_false_nodes(roads.drop(roads.index[r_idx]))  # drop could cause new
+    # Dropping may lead to new false nodes – drop those
+    roads = remove_false_nodes(roads.drop(roads.index[r_idx]))
 
     # Filter singleton artifacts
     rook = graph.Graph.build_contiguity(artifacts, rook=True)
 
-    # keep only those artifacts which occur as isolates, i.e. are not part of a larger
-    # intersection
+    # Keep only those artifacts which occur as isolates,
+    # e.g. artifacts that are not part of a larger intersection
     singles = artifacts.loc[artifacts.index.intersection(rook.isolates)].copy()
 
     # Filter doubles
