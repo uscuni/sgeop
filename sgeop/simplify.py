@@ -248,11 +248,11 @@ def simplify_singletons(
                 stacklevel=2,
             )
 
-    # split lines on new nodes
+    # Split lines on new nodes
     cleaned_roads = split(split_points, roads.drop(to_drop), roads.crs)
 
     if to_add:
-        # create new roads with fixed geometry.
+        # Create new roads with fixed geometry.
         # Note: ``to_add`` and ``to_drop`` lists shall be global and
         # this step should happen only once, not for every artifact
         _add_merged = gpd.GeoSeries(to_add).line_merge()
@@ -284,13 +284,13 @@ def simplify_pairs(
     This process extracts nodes from network edges before identifying non-planarity
     and cluster information.
 
-    If paired artifacts are present, we further classify them as grouped by
-    first instance of duplication vs. last instance component label and whether
-    of not to be simplified by with the clustered process.
+    If paired artifacts are present we further classify them as grouped by
+    first vs. last instance of duplicated component label, and whether
+    or not to be simplified with the clustered process.
 
     Finally, simplification is performed based on the following order of typologies:
         1. Singletons – merged pairs & first instance (w/o COINS)
-        2. Singletons – Second instance – w/COINS
+        2. Singletons – Second instance – w/ COINS
         3. Clusters
 
     Parameters
@@ -425,7 +425,7 @@ def simplify_pairs(
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
         )
-        # Second instance – w/COINS
+        # Second instance – w/ COINS
         if not _2nd.empty:
             roads_cleaned = simplify_singletons(
                 _2nd,
