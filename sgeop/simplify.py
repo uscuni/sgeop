@@ -261,8 +261,8 @@ def simplify_singletons(
         new["_status"] = "new"
         new.geometry = new.simplify(max_segment_length * simplification_factor)
         new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
-        _empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
-        new_roads = remove_false_nodes(_empties, aggfunc={"_status": _status})
+        non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
+        new_roads = remove_false_nodes(non_empties, aggfunc={"_status": _status})
 
         return new_roads
     else:
@@ -347,11 +347,8 @@ def simplify_pairs(
     _solutions = _planar_grouped.apply(get_solution, roads=roads)
     artifacts_w_info = artifacts.merge(_solutions, left_on="comp", right_index=True)
 
-    # Isolate non-planar clusters of value 2
-    # ---> MARTIN ---> what exactly does this mean? ###################################
+    # Isolate non-planar clusters of value 2 – e.g., artifact under highway
     _np_clust_2 = np_clusters["non_planar_cluster"] == 2
-    # ---> MARTIN ---> what does does it mean to be 'under non-planar'? ###############
-    #   Is that literally planat network edges that are underneath non-planar ones? ###
     artifacts_under_np = np_clusters[_np_clust_2].dissolve("comp", as_index=False)
 
     # Determine typology dispatch if artifacts are present
