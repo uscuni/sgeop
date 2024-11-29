@@ -351,31 +351,53 @@ def remove_dangles(new_connections, artifact, eps=1e-4):
 
 
 def one_remaining(
-    relevant_targets,
-    remaining_nodes,
-    artifact,
-    edges,
-    es_mask,
-    max_segment_length,
-    split_points,
-    clip_limit: int,
-    consolidation_tolerance,
-):
-    """
+    relevant_targets: gpd.GeoDataFrame,
+    remaining_nodes: gpd.GeoDataFrame,
+    artifact: gpd.GeoDataFrame,
+    edges: gpd.GeoDataFrame,
+    es_mask: pd.Series,
+    max_segment_length: float | int,
+    split_points: list,
+    clip_limit: float | int,
+    consolidation_tolerance: float | int,
+) -> gpd.GeoDataFrame:
+    """Resolve situations where there is 1 highest hierarchy and 1
+    remaining node. This function is called within ``artifacts.nx_gx()``:
+        * first SUBRANCH of BRANCH 2:
+            * relevant node targets exist
+                * only one remaining node
 
     Parameters
     ----------
-
-    clip_limit : int
+    relevant_targets : geopandas.GeoDataFrame
+        The nodes forming the artifact.
+    remaining_nodes : geopandas.GeoDataFrame
+        Nodes associated with the artifact that are not in group ``C``.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
+    es_mask : pandas.Series
+        A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
+    max_segment_length : float | int
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    split_points : list
+        Points to be used for topological corrections.
+    clip_limit : float | int
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
+    consolidation_tolerance : float | int
+        Tolerance passed to node consolidation within the
+        ``geometry.voronoi_skeleton()``.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        Newly resolved edges. The ``split_points`` parameter is also updated inplace.
     """
 
     # find the nearest relevant target
