@@ -408,31 +408,56 @@ def one_remaining(
 
 
 def multiple_remaining(
-    edges,
-    es_mask,
-    artifact,
-    max_segment_length,
-    highest_hierarchy,
-    split_points,
-    snap_to,
-    clip_limit: int,
-    consolidation_tolerance,
-):
-    """
+    edges: gpd.GeoDataFrame,
+    es_mask: pd.Series,
+    artifact: pd.DataFrame,
+    max_segment_length: float | int,
+    highest_hierarchy: gpd.GeoDataFrame,
+    split_points: list,
+    snap_to: gpd.GeoSeries,
+    clip_limit: float | int,
+    consolidation_tolerance: float | int,
+) -> gpd.GeoDataFrame:
+    """Resolve situations where there is 1 highest hierarchy and multiple
+    remaining nodes. This function is called within ``artifacts.nx_gx()``:
+        * second SUBRANCH of BRANCH 2:
+            * relevant node targets exist
+                * more than one remaining node
+        * second SUBRANCH of BRANCH 3:
+            * no target nodes - snapping to C
+                * more than one remaining node
 
     Parameters
     ----------
-
-    clip_limit : int
+    edges : geopandas.GeoDataFrame
+        Line geometries forming the artifact.
+    es_mask : pandas.Series
+        A mask for ``edges`` in the ``E`` and ``S`` continuity groups.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    max_segment_length : float | int
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    split_points : list
+        Points to be used for topological corrections.
+    snap_to : geopandas.GeoSeries
+        Snap to these relevant node targets.
+    clip_limit : float | int
         Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
         we clip to fit inside the polygon. To ensure we get a space to make proper
         topological connections from the linework to the actual points on the edge of
         the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
         or the radius of maximum inscribed circle, whichever is smaller.
+    consolidation_tolerance : float | int
+        Tolerance passed to node consolidation within the
+        ``geometry.voronoi_skeleton()``.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        Newly resolved edges. The ``split_points`` parameter is also updated inplace.
     """
 
     # use skeleton to ensure all nodes are naturally connected
@@ -463,7 +488,9 @@ def one_remaining_c(
 ) -> list:
     """Resolve situations where there is 1 highest hierarchy and 1 remaining node.
     This function is called within ``artifacts.nx_gx()``:
-        * first SUBRANCH of BRANCH 3: no target nodes - snapping to ``C``
+        * first SUBRANCH of BRANCH 3:
+            * no target nodes - snapping to C
+                *  only one remaining node
 
     Parameters
     ----------
