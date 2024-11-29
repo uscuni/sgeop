@@ -229,7 +229,7 @@ def _makes_loop_contact(
 
     loops, not_loops = _loops_and_non_loops(edges)
     loop_points = shapely.points(loops.get_coordinates().values)
-    loop_gdf = gpd.GeoDataFrame(geometry=loop_points)
+    loop_gdf = gpd.GeoDataFrame(geometry=loop_points, crs=edges.crs)
     loop_point_geoms = loop_gdf.geometry
 
     # loop points intersecting non-loops
