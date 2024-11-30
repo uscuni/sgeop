@@ -15,11 +15,5 @@ def test_get_artifacts_error():
             "`threshold` or `threshold_fallback` to provide the value directly."
         ),
     ):
-        with pytest.warns(
-            UserWarning,
-            match=(
-                "Input roads could not not be polygonized. "
-                "Identification of face artifacts not possible."
-            ),
-        ):
-            sgeop.artifacts.get_artifacts(geopandas.read_parquet(path).iloc[:3])
+
+        sgeop.artifacts.get_artifacts(geopandas.read_parquet(path).iloc[:3])

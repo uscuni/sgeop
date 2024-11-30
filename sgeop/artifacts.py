@@ -79,21 +79,19 @@ def get_artifacts(
         return len(neighs) > 0 and cond(polys.loc[list(neighs), "is_artifact"])
 
     with warnings.catch_warnings():  # the second loop likey won't find threshold
-        warnings.filterwarnings("ignore", message="No threshold found")
+        warnings.filterwarnings(
+            "ignore", message="Input roads could not not be polygonized."
+        )
+        warnings.filterwarnings("ignore", message="No threshold found.")
         fas = momepy.FaceArtifacts(roads)
-    if fas.polygons.empty or (len(fas.peaks) < 2 and len(fas.valleys) == 0):
-        return gpd.GeoDataFrame(geometry=[]), None
 
-    polys = fas.polygons.set_crs(roads.crs)
-
-    # rook neighbors
-    rook = graph.Graph.build_contiguity(polys, rook=True)
-    polys["neighbors"] = rook.neighbors
-
-    # polygons are not artifacts...
-    polys["is_artifact"] = False
-    # ...unless the fai is below the threshold
+    # If the fai is below the threshold
     if threshold is None:
+        if not fas.threshold and fas.polygons.empty:
+            ########################################################################
+            STOP  ##################################################################
+            ########################################################################
+            return gpd.GeoDataFrame(geometry=[]), None
         if not fas.threshold and threshold_fallback:
             threshold = threshold_fallback
         elif not fas.threshold and not threshold_fallback:
@@ -103,6 +101,15 @@ def get_artifacts(
             )
         else:
             threshold = fas.threshold
+
+    polys = fas.polygons.set_crs(roads.crs)
+
+    # rook neighbors
+    rook = graph.Graph.build_contiguity(polys, rook=True)
+    polys["neighbors"] = rook.neighbors
+
+    # polygons are not artifacts
+    polys["is_artifact"] = False
     polys.loc[polys["face_artifact_index"] < threshold, "is_artifact"] = True
 
     # compute area, isoareal quotient, and isoperimetric quotient

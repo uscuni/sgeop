@@ -590,6 +590,10 @@ def simplify_network(
         The final, simplified road network line data.
     """
 
+    ################################################################################
+    raw_roads = roads.copy()
+    ################################################################################
+
     roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
@@ -607,8 +611,15 @@ def simplify_network(
         exclusion_mask=exclusion_mask,
         predicate=predicate,
     )
-    if artifacts.empty:
+
+    ################################################################################
+    if (
+        artifacts.empty
+        and gpd.testing.assert_geoseries_equal(roads.geometry, raw_roads.geometry)
+    ):
+        STOP
         return roads.reset_index(drop=True)
+    ################################################################################
 
     # Loop 1
     new_roads = simplify_loop(
