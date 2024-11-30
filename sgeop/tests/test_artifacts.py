@@ -15,5 +15,4 @@ def test_get_artifacts_error():
             "`threshold` or `threshold_fallback` to provide the value directly."
         ),
     ):
-
         sgeop.artifacts.get_artifacts(geopandas.read_parquet(path).iloc[:3])

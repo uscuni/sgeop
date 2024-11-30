@@ -613,9 +613,8 @@ def simplify_network(
     )
 
     ################################################################################
-    if (
-        artifacts.empty
-        and gpd.testing.assert_geoseries_equal(roads.geometry, raw_roads.geometry)
+    if artifacts.empty and gpd.testing.assert_geoseries_equal(
+        roads.geometry, raw_roads.geometry
     ):
         STOP
         return roads.reset_index(drop=True)
