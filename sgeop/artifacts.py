@@ -600,15 +600,7 @@ def loop(
     # check if we need to add a deadend to represent the space
     to_add = []
     dropped = edges[es_mask].geometry.item()
-    """
-    segments = list(
-        map(
-            shapely.LineString,
-            zip(dropped.coords[:-1], dropped.coords[1:], strict=True),
-        )
-    )  # TODO: vectorize this
-    """
-    segments = shapely.linestrings((dropped.coords[:-1], dropped.coords[1:]))
+    segments = line_segments(dropped)
 
     # figure out if there's a snapping node
     # Get nodes on Cs
@@ -719,16 +711,7 @@ def n1_g1_identical(
 
     to_drop.append(edges.index[0])
     dropped = edges.geometry.item()
-
-    """
-    segments = list(
-        map(
-            shapely.LineString,
-            zip(dropped.coords[:-1], dropped.coords[1:], strict=True),
-        )
-    )
-    """
-    segments = shapely.linestrings((dropped.coords[:-1], dropped.coords[1:]))
+    segments = line_segments(dropped)
 
     snap_to = shapely.get_point(dropped, 0)
 
@@ -1426,3 +1409,11 @@ def is_dangle(edgelines):
     ).sum(axis=1)
 
     return (first_sum == 1) | (last_sum == 1)
+
+
+def line_segments(line: shapely.LineString) -> np.ndarray:
+    """Explode a linestring into constituent pairwise coordinates."""
+    xys = line.coords[:]
+    return shapely.linestrings(
+        np.c_[np.array(xys[:-1]), np.array(xys[1:])].reshape(len(xys) - 1, 2, 2)
+    )
