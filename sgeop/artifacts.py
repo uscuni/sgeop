@@ -622,12 +622,7 @@ def loop(
     # check if we need to add a deadend to represent the space
     to_add = []
     dropped = edges[es_mask].geometry.item()
-    segments = list(
-        map(
-            shapely.LineString,
-            zip(dropped.coords[:-1], dropped.coords[1:], strict=True),
-        )
-    )  # TODO: vectorize this
+    segments = line_segments(dropped)
 
     # figure out if there's a snapping node
     # Get nodes on Cs
@@ -738,13 +733,7 @@ def n1_g1_identical(
 
     to_drop.append(edges.index[0])
     dropped = edges.geometry.item()
-
-    segments = list(
-        map(
-            shapely.LineString,
-            zip(dropped.coords[:-1], dropped.coords[1:], strict=True),
-        )
-    )
+    segments = line_segments(dropped)
 
     snap_to = shapely.get_point(dropped, 0)
 
@@ -1336,12 +1325,7 @@ def nx_gx_cluster(
             # this is a fallback for corner cases. It should result in the nearly the
             # same skeleton in the end but ensures we work with a single-part geometry
             merged_edges = shapely.concave_hull(merged_edges).exterior
-        skeletonization_input = list(
-            map(
-                shapely.LineString,
-                zip(merged_edges.coords[:-1], merged_edges.coords[1:], strict=True),
-            )
-        )
+        skeletonization_input = line_segments(merged_edges)
 
     # skeletonize
     skel, _ = voronoi_skeleton(
@@ -1442,3 +1426,11 @@ def is_dangle(edgelines):
     ).sum(axis=1)
 
     return (first_sum == 1) | (last_sum == 1)
+
+
+def line_segments(line: shapely.LineString) -> np.ndarray:
+    """Explode a linestring into constituent pairwise coordinates."""
+    xys = shapely.get_coordinates(line)
+    return shapely.linestrings(
+        np.column_stack((xys[:-1], xys[1:])).reshape(xys.shape[0] - 1, 2, 2)
+    )
