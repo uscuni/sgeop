@@ -330,8 +330,27 @@ def reconnect(conts_groups, new_connections, artifact, split_points, eps):
     return new_connections
 
 
-def remove_dangles(new_connections, artifact, eps=1e-4):
-    # the drop above could've introduced a dangling edges. Remove those.
+def remove_dangles(
+    new_connections: np.ndarray,
+    artifact: gpd.GeoDataFrame,
+    eps: float = 1e-4,
+) -> np.ndarray:
+    """Dropping lines can introduce dangling edges. Remove those.
+
+    Parameters
+    ----------
+    new_connections : np.ndarray
+        New linestring for reconnections.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    eps : float = 1e-4
+        Small tolerance epsilon.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` without dangling edges.
+    """
 
     new_connections = shapely.line_merge(new_connections)
     pts0 = shapely.get_point(new_connections, 0)
@@ -1408,22 +1427,19 @@ def nx_gx_cluster(
     to_add.extend(lines_to_add)
 
 
-def is_dangle(edgelines):
-    first = shapely.get_point(edgelines, 0)
-    last = shapely.get_point(edgelines, -1)
-    first_ix, edge_ix1 = edgelines.sindex.query(first, predicate="intersects")
-    first_sum = sparse.coo_array(
-        ([True] * len(first_ix), (first_ix, edge_ix1)),
-        shape=(len(edgelines), len(edgelines)),
-        dtype=np.bool_,
-    ).sum(axis=1)
+def is_dangle(edgelines: gpd.GeoSeries) -> bool:
+    """Determine if an edge is dangling or not."""
 
-    last_ix, edge_ix1 = edgelines.sindex.query(last, predicate="intersects")
-    last_sum = sparse.coo_array(
-        ([True] * len(last_ix), (last_ix, edge_ix1)),
-        shape=(len(edgelines), len(edgelines)),
-        dtype=np.bool_,
-    ).sum(axis=1)
+    def _sum_intersects(loc: int) -> int:
+        """Sum the number of places linestrings intersect each other."""
+        point = shapely.get_point(edgelines, loc)
+        ix, edge_ix1 = edgelines.sindex.query(point, predicate="intersects")
+        data = ([True] * len(ix), (ix, edge_ix1))
+        return sparse.coo_array(data, shape=shape, dtype=np.bool_).sum(axis=1)
+
+    shape = (len(edgelines), len(edgelines))
+    first_sum = _sum_intersects(0)
+    last_sum = _sum_intersects(-1)
 
     return (first_sum == 1) | (last_sum == 1)
 
