@@ -6,6 +6,12 @@ import pandas
 import pytest
 import shapely
 
+import sgeop
+
+# set the global exception raiser for testing & debugging
+# See gh#121
+sgeop.simplify.DEBUGGING = True
+
 line_collection = (
     list[shapely.LineString]
     | tuple[shapely.LineString]
@@ -21,6 +27,7 @@ geometry_collection = (
     | pandas.Series
     | geopandas.GeoSeries
 )
+
 
 ####################################################
 # see:
