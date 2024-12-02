@@ -330,8 +330,31 @@ def reconnect(conts_groups, new_connections, artifact, split_points, eps):
     return new_connections
 
 
-def remove_dangles(new_connections, artifact, eps=1e-4):
-    # the drop above could've introduced a dangling edges. Remove those.
+def remove_dangles(
+    new_connections,
+    artifact,
+    eps: float = 1e-4,
+):
+    """Drop can introduce a dangling edges. Remove those.
+
+    Parameters
+    ----------
+    new_connections : ...
+        ...
+    artifact : ...
+        ...
+    eps : float = 1e-4
+        Small tolerance epsilon.
+
+    Returns
+    -------
+
+    """
+
+    print(f"{type(new_connections)=}")
+    print(f"{type(artifact)=}")
+
+    stop
 
     new_connections = shapely.line_merge(new_connections)
     pts0 = shapely.get_point(new_connections, 0)
