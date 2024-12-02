@@ -1303,12 +1303,7 @@ def nx_gx_cluster(
             # this is a fallback for corner cases. It should result in the nearly the
             # same skeleton in the end but ensures we work with a single-part geometry
             merged_edges = shapely.concave_hull(merged_edges).exterior
-        skeletonization_input = list(
-            map(
-                shapely.LineString,
-                zip(merged_edges.coords[:-1], merged_edges.coords[1:], strict=True),
-            )
-        )
+        skeletonization_input = line_segments(merged_edges)
 
     # skeletonize
     skel, _ = voronoi_skeleton(
