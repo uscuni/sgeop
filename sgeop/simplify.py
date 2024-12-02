@@ -25,6 +25,8 @@ from .nodes import (
     split,
 )
 
+DEBUGGING = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -241,6 +243,8 @@ def simplify_singletons(
             else:
                 logger.debug("NON PLANAR")
         except Exception as e:
+            if DEBUGGING:
+                raise e
             warnings.warn(
                 f"An error occured at location {artifact.geometry.centroid}. "
                 f"The artifact has not been simplified. The original message:\n{e}",
