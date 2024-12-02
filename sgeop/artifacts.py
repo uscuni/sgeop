@@ -283,15 +283,36 @@ def filter_connections(primes, relevant_targets, conts_groups, new_connections):
 
 
 def avoid_forks(
-    highest_hierarchy,
-    new_connections,
-    relevant_targets,
-    artifact,
-    split_points,
-):
-    # mutliple Cs that are not intersecting. Avoid forks on the ends of Voronoi. If
-    # one goes to relevant node, keep it. If not, remove both and replace with
-    # a new shortest connection
+    highest_hierarchy: gpd.GeoDataFrame,
+    new_connections: np.ndarray,
+    relevant_targets: gpd.GeoDataFrame,
+    artifact: gpd.GeoDataFrame,
+    split_points: list,
+) -> np.ndarray:
+    """Multiple ``C``s that are not intersecting. Avoid forks on the ends of a
+    Voronoi skeleton. If one goes to a relevant node, keep it. If not, remove
+    both and replace with a new shortest connection.
+
+    Parameters
+    ----------
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    new_connections : numpy.ndarray
+        New linestring for reconnections.
+    relevant_targets : geopandas.GeoDataFrame
+        The nodes forming the artifact.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    split_points : list
+        Points to be used for topological corrections.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` with either 1 prong of the fork if it connects to
+        a relevant node or a new short connection if not.
+    """
+
     int_mask = shapely.intersects(new_connections, highest_hierarchy.union_all())
     targets_mask = shapely.intersects(new_connections, relevant_targets.union_all())
     new_connections = new_connections[(int_mask * targets_mask) | np.invert(int_mask)]
@@ -307,8 +328,34 @@ def avoid_forks(
     return new_connections
 
 
-def reconnect(conts_groups, new_connections, artifact, split_points, eps):
-    # check for disconnected Cs and reconnect
+def reconnect(
+    conts_groups: gpd.GeoDataFrame,
+    new_connections: np.ndarray,
+    artifact: gpd.GeoDataFrame,
+    split_points: list,
+    eps: float,
+) -> np.ndarray:
+    """Check for disconnected Cs and reconnect.
+
+    Parameters
+    ----------
+    conts_groups : geopandas.GeoDataFrame
+        All ``C`` labeled edges dissolved by connected component label.
+    new_connections : numpy.ndarray
+        New linestring for reconnections.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    split_points : list
+        Points to be used for topological corrections.
+    eps : float
+        Small tolerance epsilon.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` with additional edges.
+    """
+
     new_connections_comps = graph.Graph.build_contiguity(
         gpd.GeoSeries(new_connections), rook=False
     ).component_labels
