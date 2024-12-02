@@ -293,15 +293,36 @@ def filter_connections(primes, relevant_targets, conts_groups, new_connections):
 
 
 def avoid_forks(
-    highest_hierarchy,
-    new_connections,
-    relevant_targets,
-    artifact,
-    split_points,
-):
-    # mutliple Cs that are not intersecting. Avoid forks on the ends of Voronoi. If
-    # one goes to relevant node, keep it. If not, remove both and replace with
-    # a new shortest connection
+    highest_hierarchy: gpd.GeoDataFrame,
+    new_connections: np.ndarray,
+    relevant_targets: gpd.GeoDataFrame,
+    artifact: gpd.GeoDataFrame,
+    split_points: list,
+) -> np.ndarray:
+    """Multiple ``C``s that are not intersecting. Avoid forks on the ends of a
+    Voronoi skeleton. If one goes to a relevant node, keep it. If not, remove
+    both and replace with a new shortest connection.
+
+    Parameters
+    ----------
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    new_connections : numpy.ndarray
+        New linestring for reconnections.
+    relevant_targets : geopandas.GeoDataFrame
+        The nodes forming the artifact.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    split_points : list
+        Points to be used for topological corrections.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` with either 1 prong of the fork if it connects to
+        a relevant node or a new short connection if not.
+    """
+
     int_mask = shapely.intersects(new_connections, highest_hierarchy.union_all())
     targets_mask = shapely.intersects(new_connections, relevant_targets.union_all())
     new_connections = new_connections[(int_mask * targets_mask) | np.invert(int_mask)]
@@ -317,8 +338,34 @@ def avoid_forks(
     return new_connections
 
 
-def reconnect(conts_groups, new_connections, artifact, split_points, eps):
-    # check for disconnected Cs and reconnect
+def reconnect(
+    conts_groups: gpd.GeoDataFrame,
+    new_connections: np.ndarray,
+    artifact: gpd.GeoDataFrame,
+    split_points: list,
+    eps: float,
+) -> np.ndarray:
+    """Check for disconnected Cs and reconnect.
+
+    Parameters
+    ----------
+    conts_groups : geopandas.GeoDataFrame
+        All ``C`` labeled edges dissolved by connected component label.
+    new_connections : numpy.ndarray
+        New linestring for reconnections.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    split_points : list
+        Points to be used for topological corrections.
+    eps : float
+        Small tolerance epsilon.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` with additional edges.
+    """
+
     new_connections_comps = graph.Graph.build_contiguity(
         gpd.GeoSeries(new_connections), rook=False
     ).component_labels
@@ -340,8 +387,27 @@ def reconnect(conts_groups, new_connections, artifact, split_points, eps):
     return new_connections
 
 
-def remove_dangles(new_connections, artifact, eps=1e-4):
-    # the drop above could've introduced a dangling edges. Remove those.
+def remove_dangles(
+    new_connections: np.ndarray,
+    artifact: gpd.GeoDataFrame,
+    eps: float = 1e-4,
+) -> np.ndarray:
+    """Dropping lines can introduce dangling edges. Remove those.
+
+    Parameters
+    ----------
+    new_connections : np.ndarray
+        New linestring for reconnections.
+    artifact : geopandas.GeoDataFrame
+        The polygonal representation of the artifact.
+    eps : float = 1e-4
+        Small tolerance epsilon.
+
+    Returns
+    -------
+    np.ndarray
+        ``new_connections`` without dangling edges.
+    """
 
     new_connections = shapely.line_merge(new_connections)
     pts0 = shapely.get_point(new_connections, 0)
@@ -1418,22 +1484,19 @@ def nx_gx_cluster(
     to_add.extend(lines_to_add)
 
 
-def is_dangle(edgelines):
-    first = shapely.get_point(edgelines, 0)
-    last = shapely.get_point(edgelines, -1)
-    first_ix, edge_ix1 = edgelines.sindex.query(first, predicate="intersects")
-    first_sum = sparse.coo_array(
-        ([True] * len(first_ix), (first_ix, edge_ix1)),
-        shape=(len(edgelines), len(edgelines)),
-        dtype=np.bool_,
-    ).sum(axis=1)
+def is_dangle(edgelines: gpd.GeoSeries) -> bool:
+    """Determine if an edge is dangling or not."""
 
-    last_ix, edge_ix1 = edgelines.sindex.query(last, predicate="intersects")
-    last_sum = sparse.coo_array(
-        ([True] * len(last_ix), (last_ix, edge_ix1)),
-        shape=(len(edgelines), len(edgelines)),
-        dtype=np.bool_,
-    ).sum(axis=1)
+    def _sum_intersects(loc: int) -> int:
+        """Sum the number of places linestrings intersect each other."""
+        point = shapely.get_point(edgelines, loc)
+        ix, edge_ix1 = edgelines.sindex.query(point, predicate="intersects")
+        data = ([True] * len(ix), (ix, edge_ix1))
+        return sparse.coo_array(data, shape=shape, dtype=np.bool_).sum(axis=1)
+
+    shape = (len(edgelines), len(edgelines))
+    first_sum = _sum_intersects(0)
+    last_sum = _sum_intersects(-1)
 
     return (first_sum == 1) | (last_sum == 1)
 
