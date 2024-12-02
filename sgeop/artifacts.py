@@ -429,7 +429,7 @@ def remove_dangles(
     Parameters
     ----------
     new_connections : np.ndarray
-        New linestring for reconnections.
+        New linestrings for reconnections.
     artifact : geopandas.GeoDataFrame
         The polygonal representation of the artifact.
     eps : float = 1e-4
