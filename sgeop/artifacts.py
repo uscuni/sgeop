@@ -1414,4 +1414,6 @@ def is_dangle(edgelines):
 def line_segments(line: shapely.LineString) -> np.ndarray:
     """Explode a linestring into constituent pairwise coordinates."""
     xys = np.array(line.coords)
-    return shapely.linestrings(np.c_[xys[:-1], xys[1:]].reshape(xys.shape[0] - 1, 2, 2))
+    return shapely.linestrings(
+        np.column_stack((xys[:-1], xys[1:])).reshape(xys.shape[0] - 1, 2, 2)
+    )
