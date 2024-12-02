@@ -28,6 +28,70 @@ from .nodes import (
 logger = logging.getLogger(__name__)
 
 
+def _link_nodes_artifacts(
+    step: str,
+    roads: gpd.GeoDataFrame,
+    artifacts: gpd.GeoDataFrame,
+    eps: float,
+) -> tuple[gpd.GeoDataFrame]:
+    """Helper to prep nodes & artifacts when simplifying singletons & pairs."""
+
+    # Get nodes from the network
+    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
+
+    if step == "singletons":
+        node_geom = nodes.geometry
+        sindex_kwargs = {"predicate": "dwithin", "distance": eps}
+    else:
+        node_geom = nodes.buffer(0.1)
+        sindex_kwargs = {"predicate": "intersects"}
+
+    # Link nodes to artifacts
+    node_idx, artifact_idx = artifacts.sindex.query(node_geom, **sindex_kwargs)
+
+    intersects = sparse.coo_array(
+        ([True] * len(node_idx), (node_idx, artifact_idx)),
+        shape=(len(nodes), len(artifacts)),
+        dtype=np.bool_,
+    )
+
+    # Compute number of nodes per artifact
+    artifacts["node_count"] = intersects.sum(axis=0)
+
+    return nodes, artifacts
+
+
+def _classify_strokes(
+    artifacts: gpd.GeoDataFrame, roads: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """Classify artifacts with ``{C,E,S}`` typology."""
+
+    strokes, c_, e_, s_ = get_stroke_info(artifacts, roads)
+
+    artifacts["stroke_count"] = strokes
+    artifacts["C"] = c_
+    artifacts["E"] = e_
+    artifacts["S"] = s_
+
+    return artifacts
+
+
+def _identify_non_planar(
+    artifacts: gpd.GeoDataFrame, roads: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """Filter artifacts caused by non-planar intersections."""
+
+    # Note from within `simplify_singletons()`
+    # TODO: This is not perfect.
+    # TODO: Some 3CC artifacts were non-planar but not captured here.
+
+    artifacts["non_planar"] = artifacts["stroke_count"] > artifacts["node_count"]
+    a_idx, r_idx = roads.sindex.query(artifacts.geometry.boundary, predicate="overlaps")
+    artifacts.iloc[np.unique(a_idx), artifacts.columns.get_loc("non_planar")] = True
+
+    return artifacts
+
+
 def simplify_singletons(
     artifacts: gpd.GeoDataFrame,
     roads: gpd.GeoDataFrame,
@@ -46,8 +110,8 @@ def simplify_singletons(
     face artifacts with a ``{C, E, S}`` typology through ``momepy.COINS`` via the
     constituent road geometries.
 
-    Next, the artifacts' constituent line geometries are either dropped or added in
-    the following order of typologies:
+    Next, each artifact is iterated over and constituent line geometries are either
+    dropped or added in the following order of typologies:
         1. 1 node and 1 continuity group
         2. more than 1 node and 1 or more identical continuity groups
         3. 2 or more nodes and 2 or more continuity groups
@@ -88,68 +152,54 @@ def simplify_singletons(
     Returns
     -------
     geopandas.GeoDataFrame
-        The road network line data following singletons.
+        The road network line data following the singleton procedure.
     """
 
-    # Get nodes from the network.
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
-
-    # Link nodes to artifacts
-    node_idx, artifact_idx = artifacts.sindex.query(
-        nodes.geometry, predicate="dwithin", distance=eps
-    )
-    intersects = sparse.coo_array(
-        ([True] * len(node_idx), (node_idx, artifact_idx)),
-        shape=(len(nodes), len(artifacts)),
-        dtype=np.bool_,
-    )
-
-    # Compute number of nodes per artifact
-    artifacts["node_count"] = intersects.sum(axis=0)
+    # Extract network nodes and relate to artifacts
+    nodes, artifacts = _link_nodes_artifacts("singletons", roads, artifacts, eps)
 
     # Compute number of stroke groups per artifact
     if compute_coins:
         roads, _ = continuity(roads)
-    strokes, c_, e_, s_ = get_stroke_info(artifacts, roads)
+    artifacts = _classify_strokes(artifacts, roads)
 
-    artifacts["stroke_count"] = strokes
-    artifacts["C"] = c_
-    artifacts["E"] = e_
-    artifacts["S"] = s_
+    # Filter artifacts caused by non-planar intersections
+    artifacts = _identify_non_planar(artifacts, roads)
 
-    # Filter artifacts caused by non-planar intersections. (TODO: Note that this is not
-    # perfect and some 3CC artifacts were non-planar but not captured here).
-    artifacts["non_planar"] = artifacts["stroke_count"] > artifacts["node_count"]
-    a_idx, r_idx = roads.sindex.query(artifacts.geometry.boundary, predicate="overlaps")
-    artifacts.iloc[np.unique(a_idx), artifacts.columns.get_loc("non_planar")] = True
+    # Count intersititial nodes (primes)
+    _prime_count = artifacts["node_count"] - artifacts[["C", "E", "S"]].sum(axis=1)
+    artifacts["interstitial_nodes"] = _prime_count
 
-    # Count intersititial nodes (primes).
-    artifacts["interstitial_nodes"] = artifacts.node_count - artifacts[
-        ["C", "E", "S"]
-    ].sum(axis=1)
-
-    # Define the type label.
+    # Define the type label
     ces_type = []
     for x in artifacts[["node_count", "C", "E", "S"]].itertuples():
         ces_type.append(f"{x.node_count}{'C' * x.C}{'E' * x.E}{'S' * x.S}")
     artifacts["ces_type"] = ces_type
 
-    # collect changes
+    # Collect changes
     to_drop = []
     to_add = []
     split_points = []
 
-    planar = artifacts[~artifacts.non_planar].copy()
+    # Isolate planar artifacts
+    planar = artifacts[~artifacts["non_planar"]].copy()
     planar["buffered"] = planar.buffer(eps)
-    if artifacts.non_planar.any():
+    if artifacts["non_planar"].any():
         logger.debug(f"IGNORING {artifacts.non_planar.sum()} non planar artifacts")
 
+    # Iterate over each singleton planar artifact and simplify based on typology
     for artifact in planar.itertuples():
-        # get edges relevant for an artifact
+        n_nodes = artifact.node_count
+        n_strokes = artifact.stroke_count
+        cestype = artifact.ces_type
+
+        # Get edges relevant for an artifact
         edges = roads.iloc[roads.sindex.query(artifact.buffered, predicate="covers")]
 
+        # Dispatch by typology
         try:
-            if (artifact.node_count == 1) and (artifact.stroke_count == 1):
+            # 1 node and 1 continuity group
+            if (n_nodes == 1) and (n_strokes == 1):
                 logger.debug("FUNCTION n1_g1_identical")
                 n1_g1_identical(
                     edges,
@@ -159,8 +209,8 @@ def simplify_singletons(
                     max_segment_length=max_segment_length,
                     clip_limit=clip_limit,
                 )
-
-            elif (artifact.node_count > 1) and (len(set(artifact.ces_type[1:])) == 1):
+            # More than 1 node and 1 or more identical continuity groups
+            elif (n_nodes > 1) and (len(set(cestype[1:])) == 1):
                 logger.debug("FUNCTION nx_gx_identical")
                 nx_gx_identical(
                     edges,
@@ -173,8 +223,8 @@ def simplify_singletons(
                     clip_limit=clip_limit,
                     consolidation_tolerance=consolidation_tolerance,
                 )
-
-            elif (artifact.node_count > 1) and (len(artifact.ces_type) > 2):
+            # 2 or more nodes and 2 or more continuity groups
+            elif (n_nodes > 1) and (len(cestype) > 2):
                 logger.debug("FUNCTION nx_gx")
                 nx_gx(
                     edges,
@@ -198,27 +248,21 @@ def simplify_singletons(
                 stacklevel=2,
             )
 
-    cleaned_roads = roads.drop(to_drop)
-    # split lines on new nodes
-    cleaned_roads = split(split_points, cleaned_roads, roads.crs)
+    # Split lines on new nodes
+    cleaned_roads = split(split_points, roads.drop(to_drop), roads.crs)
 
     if to_add:
-        # create new roads with fixed geometry. Note that to_add and to_drop lists shall
-        # be global and this step should happen only once, not for every artifact
-        new = gpd.GeoDataFrame(
-            geometry=gpd.GeoSeries(to_add).line_merge(), crs=roads.crs
-        ).explode()
+        # Create new roads with fixed geometry.
+        # Note: ``to_add`` and ``to_drop`` lists shall be global and
+        # this step should happen only once, not for every artifact
+        _add_merged = gpd.GeoSeries(to_add).line_merge()
+        new = gpd.GeoDataFrame(geometry=_add_merged, crs=roads.crs).explode()
         new = new[~new.normalize().duplicated()].copy()
         new["_status"] = "new"
         new.geometry = new.simplify(max_segment_length * simplification_factor)
-        new_roads = pd.concat(
-            [cleaned_roads, new],
-            ignore_index=True,
-        )
-        new_roads = remove_false_nodes(
-            new_roads[~(new_roads.is_empty | new_roads.geometry.isna())],
-            aggfunc={"_status": _status},
-        )
+        new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
+        non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
+        new_roads = remove_false_nodes(non_empties, aggfunc={"_status": _status})
 
         return new_roads
     else:
@@ -226,121 +270,134 @@ def simplify_singletons(
 
 
 def simplify_pairs(
-    artifacts,
-    roads,
-    max_segment_length=1,
-    min_dangle_length=20,
-    clip_limit: int = 2,
-    simplification_factor=2,
-    consolidation_tolerance=10,
-):
-    """
+    artifacts: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    max_segment_length: float | int = 1,
+    min_dangle_length: float | int = 20,
+    clip_limit: float | int = 2,
+    simplification_factor: float | int = 2,
+    consolidation_tolerance: float | int = 10,
+) -> gpd.GeoDataFrame:
+    """Simplification of pairs of face artifacts – the second simplification step in
+    the procedure detailed in ``simplify.simplify_loop()``.
+
+    This process extracts nodes from network edges before identifying non-planarity
+    and cluster information.
+
+    If paired artifacts are present we further classify them as grouped by
+    first vs. last instance of duplicated component label, and whether
+    or not to be simplified with the clustered process.
+
+    Finally, simplification is performed based on the following order of typologies:
+        1. Singletons – merged pairs & first instance (w/o COINS)
+        2. Singletons – Second instance – w/ COINS
+        3. Clusters
 
     Parameters
     ----------
-
-    clip_limit : int = 2
-        Following generation of the Voronoi linework in ``geometry.voronoi_skeleton()``,
-        we clip to fit inside the polygon. To ensure we get a space to make proper
-        topological connections from the linework to the actual points on the edge of
-        the polygon, we clip using a polygon with a negative buffer of ``clip_limit``
-        or the radius of maximum inscribed circle, whichever is smaller.
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    roads : geopandas.GeoDataFrame
+        Preprocessed road network data.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    min_dangle_length : float | int = 20
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    clip_limit : float | int = 2
+        Following generation of the Voronoi linework, we clip to fit inside the
+        polygon. To ensure we get a space to make proper topological connections
+        from the linework to the actual points on the edge of the polygon, we clip
+        using a polygon with a negative buffer of ``clip_limit`` or the radius of
+        maximum inscribed circle, whichever is smaller.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
 
     Returns
     -------
-
+    geopandas.GeoDataFrame
+        The road network line data following the pairs procedure.
     """
 
-    # Get nodes from the network.
-    nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
-
-    # Link nodes to artifacts
-    node_idx, artifact_idx = artifacts.sindex.query(
-        nodes.buffer(0.1), predicate="intersects"
-    )
-    intersects = sparse.coo_array(
-        ([True] * len(node_idx), (node_idx, artifact_idx)),
-        shape=(len(nodes), len(artifacts)),
-        dtype=np.bool_,
-    )
-
-    # Compute number of nodes per artifact
-    artifacts["node_count"] = intersects.sum(axis=0)
+    # Extract network nodes and relate to artifacts
+    nodes, artifacts = _link_nodes_artifacts("pairs", roads, artifacts, None)
 
     # Compute number of stroke groups per artifact
     roads, _ = continuity(roads)
-    strokes, c_, e_, s_ = get_stroke_info(artifacts, roads)
+    artifacts = _classify_strokes(artifacts, roads)
 
-    artifacts["stroke_count"] = strokes
-    artifacts["C"] = c_
-    artifacts["E"] = e_
-    artifacts["S"] = s_
+    # Filter artifacts caused by non-planar intersections
+    artifacts = _identify_non_planar(artifacts, roads)
 
-    # Filter artifacts caused by non-planar intersections.
-    artifacts["non_planar"] = artifacts["stroke_count"] > artifacts["node_count"]
-    a_idx, _ = roads.sindex.query(artifacts.geometry.boundary, predicate="overlaps")
-    artifacts.loc[artifacts.index[np.unique(a_idx)], "non_planar"] = True
-
-    artifacts["non_planar_cluster"] = artifacts.apply(
-        lambda x: sum(artifacts.loc[artifacts["comp"] == x.comp]["non_planar"]), axis=1
-    )
+    # Identify non-planar clusters
+    _id_np = lambda x: sum(artifacts.loc[artifacts["comp"] == x.comp]["non_planar"])  # noqa: E731
+    artifacts["non_planar_cluster"] = artifacts.apply(_id_np, axis=1)
+    # Subset non-planar clusters and planar artifacts
     np_clusters = artifacts[artifacts.non_planar_cluster > 0]
     artifacts_planar = artifacts[artifacts.non_planar_cluster == 0]
 
-    artifacts_w_info = artifacts.merge(
-        artifacts_planar.groupby("comp")[artifacts_planar.columns].apply(
-            get_solution, roads=roads
-        ),
-        left_on="comp",
-        right_index=True,
-    )
-    artifacts_under_np = np_clusters[np_clusters.non_planar_cluster == 2].dissolve(
-        "comp", as_index=False
-    )
+    # Isolate planar artifacts
+    _planar_grouped = artifacts_planar.groupby("comp")[artifacts_planar.columns]
+    _solutions = _planar_grouped.apply(get_solution, roads=roads)
+    artifacts_w_info = artifacts.merge(_solutions, left_on="comp", right_index=True)
 
+    # Isolate non-planar clusters of value 2 – e.g., artifact under highway
+    _np_clust_2 = np_clusters["non_planar_cluster"] == 2
+    artifacts_under_np = np_clusters[_np_clust_2].dissolve("comp", as_index=False)
+
+    # Determine typology dispatch if artifacts are present
     if not artifacts_w_info.empty:
-        to_drop = (
-            artifacts_w_info.drop_duplicates("comp")
-            .query("solution == 'drop_interline'")
-            .drop_id
-        )
+        sol_drop = "solution == 'drop_interline'"
+        sol_iter = "solution == 'iterate'"
 
+        # Determine artifacts and road edges to drop
+        _to_drop = artifacts_w_info.drop_duplicates("comp").query(sol_drop).drop_id
+        _drop_roads = roads.drop(_to_drop.dropna().values)
+
+        # Re-run node cleaning on subset of fresh road edges
         roads_cleaned = remove_false_nodes(
-            roads.drop(to_drop.dropna().values),
+            _drop_roads,
             aggfunc={
                 "coins_group": "first",
                 "coins_end": lambda x: x.any(),
                 "_status": _status,
             },
         )
-        merged_pairs = artifacts_w_info.query("solution == 'drop_interline'").dissolve(
-            "comp", as_index=False
-        )
 
-        sorted_by_node_count = artifacts_w_info.sort_values(
-            "node_count", ascending=False
-        )
-        first = sorted_by_node_count.query("solution == 'iterate'").drop_duplicates(
-            "comp", keep="first"
-        )
-        second = sorted_by_node_count.query("solution == 'iterate'").drop_duplicates(
-            "comp", keep="last"
-        )
+        # Isolate drops to create merged pairs
+        merged_pairs = artifacts_w_info.query(sol_drop).dissolve("comp", as_index=False)
 
-        first = pd.concat(
-            [first, np_clusters[~np_clusters.non_planar]], ignore_index=True
-        )
+        # Sort artifacts by their node count low-to-high
+        sorted_node_count = artifacts_w_info.sort_values("node_count", ascending=False)
 
+        # Isolate artifacts to process as singletons – first instance
+        _1st = sorted_node_count.query(sol_iter).drop_duplicates("comp", keep="first")
+        _planar_clusters = np_clusters[~np_clusters["non_planar"]]
+        _1st = pd.concat([_1st, _planar_clusters], ignore_index=True)
+
+        # Isolate artifacts to process as singletons – last instance
+        _2nd = sorted_node_count.query(sol_iter).drop_duplicates("comp", keep="last")
+
+        # Isolate artifacts to process as clusters
         for_skeleton = artifacts_w_info.query("solution == 'skeleton'")
+
+    # Otherwise instantiate artifact containers as empty
     else:
         merged_pairs = pd.DataFrame()
-        first = pd.DataFrame()
-        second = pd.DataFrame()
+        _1st = pd.DataFrame()
+        _2nd = pd.DataFrame()
         for_skeleton = pd.DataFrame()
         roads_cleaned = roads[
             ["coins_group", "coins_end", "_status", roads.geometry.name]
         ]
 
+    # Generate counts of COINs groups for edges
     coins_count = (
         roads_cleaned.groupby("coins_group", as_index=False)
         .geometry.count()
@@ -348,12 +405,15 @@ def simplify_pairs(
     )
     roads_cleaned = roads_cleaned.merge(coins_count, on="coins_group", how="left")
 
+    # Add under non-planars to cluster dispatcher
     if not artifacts_under_np.empty:
         for_skeleton = pd.concat([for_skeleton, artifacts_under_np])
 
-    if not merged_pairs.empty or not first.empty:
+    # Dispatch singleton simplifier
+    if not merged_pairs.empty or not _1st.empty:
+        # Merged pairs & first instance – w/o COINS
         roads_cleaned = simplify_singletons(
-            pd.concat([merged_pairs, first]),
+            pd.concat([merged_pairs, _1st]),
             roads_cleaned,
             max_segment_length=max_segment_length,
             clip_limit=clip_limit,
@@ -362,9 +422,10 @@ def simplify_pairs(
             simplification_factor=simplification_factor,
             consolidation_tolerance=consolidation_tolerance,
         )
-        if not second.empty:
+        # Second instance – w/ COINS
+        if not _2nd.empty:
             roads_cleaned = simplify_singletons(
-                second,
+                _2nd,
                 roads_cleaned,
                 max_segment_length=max_segment_length,
                 clip_limit=clip_limit,
@@ -373,6 +434,8 @@ def simplify_pairs(
                 simplification_factor=simplification_factor,
                 consolidation_tolerance=consolidation_tolerance,
             )
+
+    # Dispatch cluster simplifier
     if not for_skeleton.empty:
         roads_cleaned = simplify_clusters(
             for_skeleton,
@@ -382,6 +445,7 @@ def simplify_pairs(
             min_dangle_length=min_dangle_length,
             consolidation_tolerance=consolidation_tolerance,
         )
+
     return roads_cleaned
 
 
@@ -620,7 +684,7 @@ def simplify_network(
         eps=eps,
     )
 
-    # this is potentially fixing some minor erroneous edges coming from Voronoi
+    # This is potentially fixing some minor erroneous edges coming from Voronoi
     new_roads = induce_nodes(new_roads, eps=eps)
     new_roads = new_roads[~new_roads.geometry.normalize().duplicated()].copy()
 
@@ -650,7 +714,7 @@ def simplify_network(
         eps=eps,
     )
 
-    # this is potentially fixing some minor erroneous edges coming from Voronoi
+    # This is potentially fixing some minor erroneous edges coming from Voronoi
     final_roads = induce_nodes(final_roads, eps=eps)
     final_roads = final_roads[~final_roads.geometry.normalize().duplicated()].copy()
 
@@ -711,13 +775,14 @@ def simplify_loop(
 
     # Remove edges fully within the artifact (dangles).
     _, r_idx = roads.sindex.query(artifacts.geometry, predicate="contains")
-    roads = remove_false_nodes(roads.drop(roads.index[r_idx]))  # drop could cause new
+    # Dropping may lead to new false nodes – drop those
+    roads = remove_false_nodes(roads.drop(roads.index[r_idx]))
 
     # Filter singleton artifacts
     rook = graph.Graph.build_contiguity(artifacts, rook=True)
 
-    # keep only those artifacts which occur as isolates, i.e. are not part of a larger
-    # intersection
+    # Keep only those artifacts which occur as isolates,
+    # e.g. artifacts that are not part of a larger intersection
     singles = artifacts.loc[artifacts.index.intersection(rook.isolates)].copy()
 
     # Filter doubles
