@@ -335,7 +335,7 @@ def remove_dangles(
     artifact: gpd.GeoDataFrame,
     eps: float = 1e-4,
 ) -> np.ndarray:
-    """Dropping lines can introduce a dangling edges. Remove those.
+    """Dropping lines can introduce dangling edges. Remove those.
 
     Parameters
     ----------
@@ -1431,7 +1431,7 @@ def is_dangle(edgelines: gpd.GeoSeries) -> bool:
     """Determine if an edge is dangling or not."""
 
     def _sum_intersects(loc: int) -> int:
-        """Sum the number of places linestring intersect each other."""
+        """Sum the number of places linestrings intersect each other."""
         point = shapely.get_point(edgelines, loc)
         ix, edge_ix1 = edgelines.sindex.query(point, predicate="intersects")
         data = ([True] * len(ix), (ix, edge_ix1))
