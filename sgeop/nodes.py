@@ -402,9 +402,12 @@ def consolidate_nodes(
 
     Replace clusters of nodes with a single node (weighted centroid
     of a cluster) and snap linestring geometry to it. Cluster is
-    defined using DBSCAN on coordinates with ``tolerance==eps`.
+    defined using hierarchical clustering with average linkage
+    on coordinates cut at a cophenetic distance equal to ``tolerance`.
 
-    Does not preserve any attributes, function is purely geometric.
+    The use of hierachical clustering avoids the chaining effect of a sequence
+    of intersections within ``tolerance`` from each other that would happen with
+    DBSCAN and similar solutions.
 
     Parameters
     ----------
@@ -422,12 +425,7 @@ def consolidate_nodes(
     geopandas.GeoSeries
         Updated input ``gdf`` of LineStrings with consolidated nodes.
     """
-    # TODO: this should not dumbly merge all nodes within the cluster to a single
-    # TODO: centroid but iteratively - do the two nearest and add other only if the
-    # TODO: distance is still below the tolerance
-
-    # TODO: make it work on GeoDataFrames preserving attributes
-    from sklearn.cluster import DBSCAN
+    from scipy.cluster import hierarchy
 
     if isinstance(gdf, gpd.GeoSeries):
         gdf = gdf.to_frame("geometry")
@@ -443,14 +441,16 @@ def consolidate_nodes(
 
         # if all we have are ends, return the original
         # - this is generally when called from within ``geometry._consolidate()``
-        if nodes.empty:
+        if nodes.shape[0] < 2:
             gdf["_status"] = "original"
             return gdf
 
     # get clusters of nodes which should be consolidated
-    db = DBSCAN(eps=tolerance, min_samples=2).fit(nodes.get_coordinates())
-    nodes["lab"] = db.labels_
-    change = nodes[nodes["lab"] > -1]
+    linkage = hierarchy.linkage(nodes.get_coordinates(), method="average")
+    nodes["lab"] = hierarchy.fcluster(linkage, tolerance, criterion="distance")
+    unique, counts = np.unique(nodes["lab"], return_counts=True)
+    actual_clusters = unique[counts > 1]
+    change = nodes[nodes["lab"].isin(actual_clusters)]
 
     # no change needed, return the original
     if change.empty:
