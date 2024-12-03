@@ -42,14 +42,14 @@ def split(
             lines_split = _snap_n_split(edge.item(), split, eps)
             if lines_split.shape[0] > 1:
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
-                for c in row.index.drop(["geometry", "_status"]):
+                for c in row.index.drop(["geometry", "_status"], errors="ignore"):
                     gdf_split[c] = row[c]
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [cleaned_roads.drop(edge.index[0]), gdf_split],
                     ignore_index=True,
                 )
-        else:
+        elif edge.shape[0] > 1:
             to_be_dropped = []
             to_be_added = []
             for i, e in edge.items():
@@ -64,14 +64,20 @@ def split(
                 ).explode("geometry")
                 gdf_split = pd.concat(
                     [
-                        gdf_split.drop(columns="_orig"),
-                        edge.drop(columns="geometry").take(gdf_split["_orig"]),
-                    ]
+                        gdf_split.drop(columns="_orig").reset_index(drop=True),
+                        row.drop(columns="geometry")
+                        .loc[gdf_split["_orig"]]
+                        .reset_index(drop=True),
+                    ],
+                    axis=1,
                 )
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [cleaned_roads.drop(to_be_dropped), gdf_split],
                     ignore_index=True,
+                )
+                cleaned_roads = gpd.GeoDataFrame(
+                    cleaned_roads, geometry="geometry", crs=crs
                 )
 
     return cleaned_roads.reset_index(drop=True)
@@ -493,7 +499,7 @@ def consolidate_nodes(
             # TODO: It is temporarily fixed by that explode in return
             geom.iloc[inds] = geom.iloc[inds].difference(cookie)
 
-            status.iloc[inds] = "snapped"
+            status.iloc[inds] = "changed"
             midpoint = np.mean(shapely.get_coordinates(cluster), axis=0)
             midpoints.append(midpoint)
             mids = np.array([midpoint] * len(pts))
