@@ -200,6 +200,7 @@ def simplify_singletons(
 
     cleaned_roads = roads.drop(to_drop)
     # split lines on new nodes
+    # NOTE: this needs to preserve attributes, though it maybe already does
     cleaned_roads = split(split_points, cleaned_roads, roads.crs)
 
     if to_add:
@@ -215,9 +216,13 @@ def simplify_singletons(
             [cleaned_roads, new],
             ignore_index=True,
         )
+        agg = {"_status": _status}
+        for c in cleaned_roads.columns.drop(cleaned_roads.active_geometry_name):
+            agg[c] = "first"
         new_roads = remove_false_nodes(
             new_roads[~(new_roads.is_empty | new_roads.geometry.isna())],
-            aggfunc={"_status": _status},
+            # NOTE: this aggfunc needs to preserve all columns
+            aggfunc=agg,
         )
 
         return new_roads
@@ -304,14 +309,17 @@ def simplify_pairs(
             .query("solution == 'drop_interline'")
             .drop_id
         )
+        agg = {
+            "coins_group": "first",
+            "coins_end": lambda x: x.any(),
+            "_status": _status,
+        }
+        for c in roads.columns.drop(roads.active_geometry_name):
+            agg[c] = "first"
 
         roads_cleaned = remove_false_nodes(
             roads.drop(to_drop.dropna().values),
-            aggfunc={
-                "coins_group": "first",
-                "coins_end": lambda x: x.any(),
-                "_status": _status,
-            },
+            aggfunc=agg,
         )
         merged_pairs = artifacts_w_info.query("solution == 'drop_interline'").dissolve(
             "comp", as_index=False
@@ -437,8 +445,11 @@ def simplify_clusters(
         ],
         ignore_index=True,
     ).explode()
+    agg = {"_status": _status}
+    for c in new_roads.columns.drop(new_roads.active_geometry_name):
+        agg[c] = "first"
     new_roads = remove_false_nodes(
-        new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
+        new_roads[~new_roads.is_empty], aggfunc=agg
     ).drop_duplicates("geometry")
 
     return new_roads
@@ -589,9 +600,10 @@ def simplify_network(
     geopandas.GeoDataFrame
         The final, simplified road network line data.
     """
-
+    # NOTE: this keeps attributes but resets index
     roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
+    # NOTE: this drops attributes and resets index
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
 
     # Identify artifacts
@@ -729,6 +741,7 @@ def simplify_loop(
     clusters = artifacts.loc[artifacts["comp"].isin(counts[counts > 2].index)].copy()
 
     if not singles.empty:
+        # NOTE: this drops attributes
         roads = simplify_singletons(
             singles,
             roads,
@@ -757,4 +770,8 @@ def simplify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
 
+    if "coins_group" in roads.columns:
+        roads = roads.drop(
+            columns=["coins_group", "coins_end", "coins_len", "coins_count"]
+        )
     return roads
