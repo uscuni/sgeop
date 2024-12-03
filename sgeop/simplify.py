@@ -252,11 +252,9 @@ def simplify_singletons(
                 stacklevel=2,
             )
 
-
     cleaned_roads = roads.drop(to_drop)
     # split lines on new nodes
     cleaned_roads = split(split_points, roads.drop(to_drop), roads.crs)
-
 
     if to_add:
         # Create new roads with fixed geometry.
@@ -367,11 +365,6 @@ def simplify_pairs(
 
     # Determine typology dispatch if artifacts are present
     if not artifacts_w_info.empty:
-        to_drop = (
-            artifacts_w_info.drop_duplicates("comp")
-            .query("solution == 'drop_interline'")
-            .drop_id
-        )
         agg = {
             "coins_group": "first",
             "coins_end": lambda x: x.any(),
