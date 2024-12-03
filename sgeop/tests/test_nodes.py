@@ -978,11 +978,32 @@ class TestConsolidateNodes:
         pytest.geom_test(known, observed, tolerance=0.000001)
 
     def test_t2(self):
+        known = geopandas.GeoDataFrame(
+            {
+                "geometry": geopandas.GeoSeries.from_wkt(
+                    [
+                        "LINESTRING (10 20, 14.257597 16.168163, 15 15.25)",
+                        "LINESTRING (10 10, 14.292893 14.292893, 15 15.25)",
+                        "LINESTRING (15 15.25, 15.968974 15.742244, 16 15.75, 17 15.5)",
+                        "LINESTRING (15 15.25, 16 15, 17 15.5)",
+                        "LINESTRING (20 10, 17.513876 14.14354, 17 15.5)",
+                        "LINESTRING (20 20, 17.599286 16.799048, 17 15.5)",
+                    ]
+                ),
+                "_status": ["changed"] * 6,
+            }
+        )
+        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=2)
+
+        assert_series_equal(known._status, observed._status)
+        pytest.geom_test(known, observed, tolerance=0.000001)
+
+    def test_t5(self):
         _p1 = shapely.Point(16, 15.375)
-        _p2 = shapely.Point(14.257596648116074, 16.168163016695534)
-        _p3 = shapely.Point(14.292893218813452, 14.292893218813452)
-        _p4 = shapely.Point(17.513876076716112, 14.143539872139813)
-        _p5 = shapely.Point(17.599285898717685, 16.799047864956915)
+        _p2 = shapely.Point(13.143991620290183, 17.170407541738836)
+        _p3 = shapely.Point(13.232233047033631, 13.232233047033631)
+        _p4 = shapely.Point(18.28469019179028, 12.858849680349534)
+        _p5 = shapely.Point(18.498214746794215, 17.99761966239229)
 
         known = geopandas.GeoDataFrame(
             {
@@ -993,27 +1014,6 @@ class TestConsolidateNodes:
                     shapely.LineString((self.p7, _p5, _p1)),
                 ],
                 "_status": ["changed"] * 4,
-            }
-        )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=2)
-
-        assert_series_equal(known._status, observed._status)
-        pytest.geom_test(known, observed, tolerance=0.000001)
-
-    def test_t5(self):
-        _p1 = shapely.Point(16.8, 16.3)
-        _p2 = shapely.Point(13.143991620290183, 17.170407541738836)
-        _p3 = shapely.Point(13.232233047033631, 13.232233047033631)
-        _p4 = shapely.Point(18.28469019179028, 12.858849680349534)
-
-        known = geopandas.GeoDataFrame(
-            {
-                "geometry": [
-                    shapely.LineString((self.p6, _p2, _p1)),
-                    shapely.LineString((self.p1, _p3, _p1)),
-                    shapely.LineString((self.p8, _p4, _p1)),
-                ],
-                "_status": ["changed"] * 3,
             }
         )
         observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=5)
@@ -1046,30 +1046,20 @@ class TestConsolidateNodes:
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
 
-    def test_t6(self):
-        _p1 = shapely.Point(12.878679656440358, 12.878679656440358)
-        _p2 = shapely.Point(17.333333333333332, 15.25)
-        _p3 = shapely.Point(12.772789944348222, 17.5044890500866)
-
-        known = geopandas.GeoDataFrame(
-            {
-                "geometry": [shapely.LineString((self.p1, _p1, _p2, _p3, self.p6))],
-                "_status": ["changed"],
-            }
-        )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=6)
-
-        assert_series_equal(known._status, observed._status)
-        pytest.geom_test(known, observed, tolerance=0.000001)
-
     def test_t7(self):
-        _p1 = shapely.Point(12.525126265847085, 12.525126265847085)
-        _p2 = shapely.Point(16.285714285714285, 15.928571428571429)
+        _p1 = shapely.Point(16.8, 16.3)
+        _p2 = shapely.Point(12.40158826840626, 17.838570558434366)
+        _p3 = shapely.Point(12.525126265847085, 12.525126265847085)
+        _p4 = shapely.Point(18.79856626850639, 12.00238955248935)
 
         known = geopandas.GeoDataFrame(
             {
-                "geometry": [shapely.LineString((self.p1, _p1, _p2))],
-                "_status": ["changed"],
+                "geometry": [
+                    shapely.LineString((self.p6, _p2, _p1)),
+                    shapely.LineString((self.p1, _p3, _p1)),
+                    shapely.LineString((self.p8, _p4, _p1)),
+                ],
+                "_status": ["changed"] * 3,
             }
         )
         observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=7)
