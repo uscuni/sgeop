@@ -47,7 +47,7 @@ def continuity(
 def get_stroke_info(
     artifacts: geopandas.GeoSeries | geopandas.GeoDataFrame,
     roads: geopandas.GeoSeries | geopandas.GeoDataFrame,
-) -> tuple[list[int]]:
+) -> tuple[list[int], list[int], list[int], list[int]]:
     """Generate information about strokes within ``artifacts`` and the
     resulting lists can be assigned as columns to ``artifacts``. Classifies
     the strokes within the CES typology.
