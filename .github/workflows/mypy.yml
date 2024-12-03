@@ -28,7 +28,7 @@
       - name: setup micromamba
         uses: mamba-org/setup-micromamba@v2
         with:
-          environment-file: ci/epy313_sgeop-latest.yaml
+          environment-file: ci/py313_sgeop-latest.yaml
           create-args: >-
             mypy
 
