@@ -512,19 +512,39 @@ def simplify_clusters(
     return new_roads
 
 
-def get_type(edges, shared_edge):
-    if (  # roundabout special case
-        edges.coins_group.nunique() == 1 and edges.shape[0] == edges.coins_count.iloc[0]
+def get_type(edges: gpd.GeoDataFrame, shared_edge: int) -> str:
+    """Classify artifact edges according to the ``{C, E, S}``
+    schema when considering solutions for pairs of artifacts.
+
+    Parameters
+    ----------
+    edges : geopandas.GeoDataFrame
+        Artifact edges in consideration.
+    shared_edge : int
+        The index location of the shared edge of the pair.
+
+    Returns
+    -------
+    str
+        Classification for an edge in ``{C, E, S}``.
+    """
+
+    if (  # Roundabout special case
+        edges["coins_group"].nunique() == 1
+        and edges.shape[0] == edges["coins_count"].iloc[0]
     ):
         return "S"
 
-    all_ends = edges[edges.coins_end]
-    mains = edges[~edges.coins_group.isin(all_ends.coins_group)]
+    all_ends = edges[edges["coins_end"]]
+    mains = edges[~edges["coins_group"].isin(all_ends["coins_group"])]
     shared = edges.loc[shared_edge]
+
     if shared_edge in mains.index:
         return "C"
-    if shared.coins_count == (edges.coins_group == shared.coins_group).sum():
+
+    if shared["coins_count"] == (edges["coins_group"] == shared["coins_group"]).sum():
         return "S"
+
     return "E"
 
 
