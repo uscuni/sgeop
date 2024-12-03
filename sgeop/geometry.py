@@ -104,7 +104,7 @@ def voronoi_skeleton(
     secondary_snap_to: None | gpd.GeoSeries = None,
     clip_limit: None | float | int = 2,
     consolidation_tolerance: None | float | int = None,
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Returns average geometry.
 
@@ -171,7 +171,7 @@ def voronoi_skeleton(
     rigde_vertices = np.array(voronoi_diagram.ridge_vertices)
 
     # iterate over segment-pairs and keep rigdes between input geometries
-    edgelines = []
+    _edgelines = []
     to_add = []
     splitters = []
 
@@ -234,9 +234,9 @@ def voronoi_skeleton(
                 ),
             )
         # add final edgeline to the list
-        edgelines.append(edgeline)
+        _edgelines.append(edgeline)
 
-    edgelines = np.array(edgelines)[~(shapely.is_empty(edgelines))]
+    edgelines = np.array(_edgelines)[~(shapely.is_empty(_edgelines))]
 
     if edgelines.shape[0] > 0:
         # if there is no explicit snapping target, snap to the boundary of the polygon
@@ -270,7 +270,7 @@ def voronoi_skeleton(
     edgelines = _as_parts(edgelines)
     edgelines = _consolidate(edgelines, consolidation_tolerance)
 
-    return edgelines, splitters
+    return np.array(edgelines), np.array(splitters)
 
 
 def _remove_sliver(
@@ -326,8 +326,8 @@ def snap_to_targets(
         Lines to add and points where to split.
     """
 
-    to_add = []
-    to_split = []
+    to_add: list = []
+    to_split: list = []
 
     # generate graph from lines
     comp_labels, comp_counts, components = _prep_components(edgelines)
@@ -377,7 +377,9 @@ def snap_to_targets(
     return to_add, to_split
 
 
-def _prep_components(lines: np.ndarray) -> tuple[pd.Series, pd.Series, gpd.GeoSeries]:
+def _prep_components(
+    lines: np.ndarray | gpd.GeoSeries,
+) -> tuple[pd.Series, pd.Series, gpd.GeoSeries]:
     """Helper for preparing graph components & labels in PySAL."""
 
     # cast edgelines to gdf
@@ -398,7 +400,7 @@ def _prep_components(lines: np.ndarray) -> tuple[pd.Series, pd.Series, gpd.GeoSe
     return comp_labels, comp_counts, components
 
 
-def _split_add(line: shapely.LineString, splits: list, adds: list) -> tuple[list]:
+def _split_add(line: shapely.LineString, splits: list, adds: list) -> tuple[list, list]:
     """Helper for preparing splitter points & added lines."""
     splits.append(shapely.get_point(line, -1))
     adds.append(line)
