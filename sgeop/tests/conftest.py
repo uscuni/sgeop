@@ -12,7 +12,7 @@ import sgeop
 # See gh#121
 sgeop.simplify.DEBUGGING = True
 
-line_collection = (
+line_collection = (  # type: ignore[valid-type, misc]
     list[shapely.LineString]
     | tuple[shapely.LineString]
     | numpy.ndarray
@@ -50,7 +50,8 @@ KNOWN_BAD_GEOMS = {
 
 
 def polygonize(
-    collection: line_collection, as_geom: bool = True
+    collection: line_collection,
+    as_geom: bool = True,  # type: ignore[valid-type]
 ) -> shapely.Polygon | geopandas.GeoSeries:
     """Testing helper -- Create polygon from collection of lines."""
     if isinstance(collection, pandas.Series | geopandas.GeoSeries):
@@ -63,13 +64,13 @@ def polygonize(
         return shapely.polygonize(collection).buffer(0)
 
 
-def is_geopandas(collection: geometry_collection) -> bool:
+def is_geopandas(collection: geometry_collection) -> bool:  # type: ignore[valid-type]
     return isinstance(collection, geopandas.GeoSeries | geopandas.GeoDataFrame)
 
 
 def geom_test(
-    collection1: geometry_collection,
-    collection2: geometry_collection,
+    collection1: geometry_collection,  # type: ignore[valid-type]
+    collection2: geometry_collection,  # type: ignore[valid-type]
     tolerance: float = 1e-1,
     aoi: None | str = None,
 ) -> bool:
@@ -81,8 +82,8 @@ def geom_test(
     if not is_geopandas(collection2):
         collection2 = geopandas.GeoSeries(collection2)
 
-    geoms1 = collection1.geometry.normalize()
-    geoms2 = collection2.geometry.normalize()
+    geoms1 = collection1.geometry.normalize()  # type: ignore[attr-defined]
+    geoms2 = collection2.geometry.normalize()  # type: ignore[attr-defined]
 
     if aoi and aoi.startswith("apalachicola"):
         # Varied index order across OSs.
@@ -99,7 +100,7 @@ def geom_test(
             g2 = geoms2.loc[ix]
             if (
                 not shapely.equals_exact(g1, g2, tolerance=tolerance)
-                and ix not in KNOWN_BAD_GEOMS[aoi]
+                and ix not in KNOWN_BAD_GEOMS[aoi]  # type: ignore[index]
             ):
                 unexpected_bad[ix] = {
                     "n_coords": {
@@ -112,6 +113,7 @@ def geom_test(
             raise AssertionError(
                 f"Problem in '{aoi}' – check locs: {unexpected_bad}"
             ) from None
+    return True
 
 
 def pytest_addoption(parser):
