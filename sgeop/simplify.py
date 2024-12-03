@@ -454,29 +454,64 @@ def simplify_pairs(
 
 
 def simplify_clusters(
-    artifacts,
-    roads,
-    max_segment_length=1,
-    eps=1e-4,
-    simplification_factor=2,
-    min_dangle_length=20,
-    consolidation_tolerance=10,
-):
-    # Get nodes from the network.
+    artifacts: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    max_segment_length: float | int = 1,
+    eps: float = 1e-4,
+    simplification_factor: float | int = 2,
+    min_dangle_length: float | int = 20,
+    consolidation_tolerance: float | int = 10,
+) -> gpd.GeoDataFrame:
+    """Simplification of clusters of face artifacts – the third simplification step in
+    the procedure detailed in ``simplify.simplify_loop()``.
+
+    This process extracts nodes from network edges before iterating over each
+    cluster artifact and performing simplification.
+
+    Parameters
+    ----------
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    roads : geopandas.GeoDataFrame
+        Preprocessed road network data.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    eps : float = 1e-4
+        Tolerance epsilon used in multiple internal geometric operations.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    min_dangle_length : float | int = 20
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        The road network line data following the clusters procedure.
+    """
+
+    # Get nodes from the network
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
-    # collect changes
+    # Collect changes
     to_drop = []
     to_add = []
 
     for _, artifact in artifacts.groupby("comp"):
-        # get artifact cluster polygon
+        # Get artifact cluster polygon
         cluster_geom = artifact.union_all()
-        # get edges relevant for an artifact
+        # Get edges relevant for an artifact
         edges = roads.iloc[
             roads.sindex.query(cluster_geom, predicate="intersects")
         ].copy()
 
+        # Clusters of 2 or more nodes and 2 or more continuity groups
         nx_gx_cluster(
             edges=edges,
             cluster_geom=cluster_geom,
@@ -491,20 +526,15 @@ def simplify_clusters(
 
     cleaned_roads = roads.drop(to_drop)
 
-    # create new roads with fixed geometry. Note that to_add and to_drop lists shall be
-    # global and this step should happen only once, not for every artifact
+    # Create new roads with fixed geometry.
+    # Note: ``to_add`` and ``to_drop`` lists shall be global and
+    # this step should happen only once, not for every artifact
     new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
     new["_status"] = "new"
     new["geometry"] = new.line_merge().simplify(
         max_segment_length * simplification_factor
     )
-    new_roads = pd.concat(
-        [
-            cleaned_roads,
-            new,
-        ],
-        ignore_index=True,
-    ).explode()
+    new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
     new_roads = remove_false_nodes(
         new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
     ).drop_duplicates("geometry")
