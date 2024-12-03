@@ -310,13 +310,13 @@ def filter_connections(
                 unwanted.append(connections_intersecting_c)
 
     if len(unwanted) > 0:
-        not_wanted_mask = ~np.isin(new_connections, np.concatenate(unwanted))
+        wanted_mask = ~np.isin(new_connections, np.concatenate(unwanted))
         if len(keeping) > 0:
             new_connections = np.concatenate(
-                [new_connections[not_wanted_mask], np.concatenate(keeping)]
+                [new_connections[wanted_mask], np.concatenate(keeping)]
             )
         else:
-            new_connections = new_connections[not_wanted_mask]
+            new_connections = new_connections[wanted_mask]
     return (
         new_connections,
         np.concatenate(conn_c) if len(conn_c) > 0 else np.array([]),
