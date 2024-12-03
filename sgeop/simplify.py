@@ -225,9 +225,13 @@ def simplify_singletons(
             aggfunc=agg,
         )
 
-        return new_roads
+        final = new_roads
     else:
-        return cleaned_roads
+        final = cleaned_roads
+
+    if "coins_group" in final.columns:
+        final = final.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
+    return final
 
 
 def simplify_pairs(
@@ -314,7 +318,9 @@ def simplify_pairs(
             "coins_end": lambda x: x.any(),
             "_status": _status,
         }
-        for c in roads.columns.drop(roads.active_geometry_name):
+        for c in roads.columns.drop(
+            [roads.active_geometry_name, "coins_count"], errors="ignore"
+        ):
             agg[c] = "first"
 
         roads_cleaned = remove_false_nodes(
@@ -771,7 +777,5 @@ def simplify_loop(
         )
 
     if "coins_group" in roads.columns:
-        roads = roads.drop(
-            columns=["coins_group", "coins_end", "coins_len", "coins_count"]
-        )
+        roads = roads.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
     return roads
