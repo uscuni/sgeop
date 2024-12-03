@@ -454,29 +454,64 @@ def simplify_pairs(
 
 
 def simplify_clusters(
-    artifacts,
-    roads,
-    max_segment_length=1,
-    eps=1e-4,
-    simplification_factor=2,
-    min_dangle_length=20,
-    consolidation_tolerance=10,
-):
-    # Get nodes from the network.
+    artifacts: gpd.GeoDataFrame,
+    roads: gpd.GeoDataFrame,
+    max_segment_length: float | int = 1,
+    eps: float = 1e-4,
+    simplification_factor: float | int = 2,
+    min_dangle_length: float | int = 20,
+    consolidation_tolerance: float | int = 10,
+) -> gpd.GeoDataFrame:
+    """Simplification of clusters of face artifacts – the third simplification step in
+    the procedure detailed in ``simplify.simplify_loop()``.
+
+    This process extracts nodes from network edges before iterating over each
+    cluster artifact and performing simplification.
+
+    Parameters
+    ----------
+    artifacts : geopandas.GeoDataFrame
+        Face artifact polygons.
+    roads : geopandas.GeoDataFrame
+        Preprocessed road network data.
+    max_segment_length : float | int = 1
+        Additional vertices will be added so that all line segments
+        are no longer than this value. Must be greater than 0.
+        Used in multiple internal geometric operations.
+    eps : float = 1e-4
+        Tolerance epsilon used in multiple internal geometric operations.
+    simplification_factor : float | int = 2
+        The factor by which singles, pairs, and clusters are simplified. The
+        ``max_segment_length`` is multiplied by this factor to get the
+        simplification epsilon.
+    min_dangle_length : float | int = 20
+        The threshold for determining if linestrings are dangling slivers to be
+        removed or not.
+    consolidation_tolerance : float | int = 10
+        Tolerance passed to node consolidation when generating Voronoi skeletons.
+
+    Returns
+    -------
+    geopandas.GeoDataFrame
+        The road network line data following the clusters procedure.
+    """
+
+    # Get nodes from the network
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
-    # collect changes
+    # Collect changes
     to_drop = []
     to_add = []
 
     for _, artifact in artifacts.groupby("comp"):
-        # get artifact cluster polygon
+        # Get artifact cluster polygon
         cluster_geom = artifact.union_all()
-        # get edges relevant for an artifact
+        # Get edges relevant for an artifact
         edges = roads.iloc[
             roads.sindex.query(cluster_geom, predicate="intersects")
         ].copy()
 
+        # Clusters of 2 or more nodes and 2 or more continuity groups
         nx_gx_cluster(
             edges=edges,
             cluster_geom=cluster_geom,
@@ -491,20 +526,15 @@ def simplify_clusters(
 
     cleaned_roads = roads.drop(to_drop)
 
-    # create new roads with fixed geometry. Note that to_add and to_drop lists shall be
-    # global and this step should happen only once, not for every artifact
+    # Create new roads with fixed geometry.
+    # Note: ``to_add`` and ``to_drop`` lists shall be global and
+    # this step should happen only once, not for every artifact
     new = gpd.GeoDataFrame(geometry=to_add, crs=roads.crs)
     new["_status"] = "new"
     new["geometry"] = new.line_merge().simplify(
         max_segment_length * simplification_factor
     )
-    new_roads = pd.concat(
-        [
-            cleaned_roads,
-            new,
-        ],
-        ignore_index=True,
-    ).explode()
+    new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
     new_roads = remove_false_nodes(
         new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
     ).drop_duplicates("geometry")
@@ -512,39 +542,73 @@ def simplify_clusters(
     return new_roads
 
 
-def get_type(edges, shared_edge):
-    if (  # roundabout special case
-        edges.coins_group.nunique() == 1 and edges.shape[0] == edges.coins_count.iloc[0]
+def get_type(edges: gpd.GeoDataFrame, shared_edge: int) -> str:
+    """Classify artifact edges according to the ``{C, E, S}``
+    schema when considering solutions for pairs of artifacts.
+
+    Parameters
+    ----------
+    edges : geopandas.GeoDataFrame
+        Artifact edges in consideration.
+    shared_edge : int
+        The index location of the shared edge of the pair.
+
+    Returns
+    -------
+    str
+        Classification for an edge in ``{C, E, S}``.
+    """
+
+    if (  # Roundabout special case
+        edges["coins_group"].nunique() == 1
+        and edges.shape[0] == edges["coins_count"].iloc[0]
     ):
         return "S"
 
-    all_ends = edges[edges.coins_end]
-    mains = edges[~edges.coins_group.isin(all_ends.coins_group)]
+    all_ends = edges[edges["coins_end"]]
+    mains = edges[~edges["coins_group"].isin(all_ends["coins_group"])]
     shared = edges.loc[shared_edge]
+
     if shared_edge in mains.index:
         return "C"
-    if shared.coins_count == (edges.coins_group == shared.coins_group).sum():
+
+    if shared["coins_count"] == (edges["coins_group"] == shared["coins_group"]).sum():
         return "S"
+
     return "E"
 
 
-def get_solution(group, roads):
+def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
+    """Determine the solution for paired planar artifacts.
+
+    Parameters
+    ----------
+    group : geopandas.GeoDataFrame
+        Dissolved group of connected planar artifacts.
+    roads : geopandas.GeoDataFrame
+        Road network data.
+
+    Returns
+    -------
+    pandas.Series
+        The determined solution and edge to drop.
+    """
+
+    def _relate(loc: int) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+        """Isolate intersecting & covering road geometries."""
+        _geom = group.geometry.iloc[loc]
+        _roads = roads.iloc[roads.sindex.query(_geom, predicate="intersects")]
+        _covers = _roads.iloc[_roads.sindex.query(_geom, predicate="covers")]
+        return _roads, _covers
+
     cluster_geom = group.union_all()
 
-    roads_a = roads.iloc[
-        roads.sindex.query(group.geometry.iloc[0], predicate="intersects")
-    ]
-    roads_b = roads.iloc[
-        roads.sindex.query(group.geometry.iloc[1], predicate="intersects")
-    ]
-    covers_a = roads_a.iloc[
-        roads_a.sindex.query(group.geometry.iloc[0], predicate="covers")
-    ]
-    covers_b = roads_b.iloc[
-        roads_b.sindex.query(group.geometry.iloc[1], predicate="covers")
-    ]
-    # find the road segment that is contained within the cluster geometry
+    roads_a, covers_a = _relate(0)
+    roads_b, covers_b = _relate(1)
+
+    # Find the road segment that is contained within the cluster geometry
     shared = roads.index[roads.sindex.query(cluster_geom, predicate="contains")]
+
     if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
@@ -555,19 +619,15 @@ def get_solution(group, roads):
     ):
         return pd.Series({"solution": "drop_interline", "drop_id": shared})
 
-    seen_by_a = get_type(
-        covers_a,
-        shared,
-    )
-    seen_by_b = get_type(
-        covers_b,
-        shared,
-    )
+    seen_by_a = get_type(covers_a, shared)
+    seen_by_b = get_type(covers_b, shared)
 
     if seen_by_a == "C" and seen_by_b == "C":
         return pd.Series({"solution": "iterate", "drop_id": shared})
+
     if seen_by_a == seen_by_b:
         return pd.Series({"solution": "drop_interline", "drop_id": shared})
+
     return pd.Series({"solution": "skeleton", "drop_id": shared})
 
 

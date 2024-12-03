@@ -171,11 +171,35 @@ def get_artifacts(
 
 
 def ccss_special_case(
-    primes, conts_groups, highest_hierarchy, relevant_nodes, split_points
-):
-    # If there are primes on both Cs, connect them. If there's prime on one C,
-    # connect it to the other C. If there are no primes, get midpoints on Cs and
-    # connect those.
+    primes: gpd.GeoSeries,
+    conts_groups: gpd.GeoDataFrame,
+    highest_hierarchy: gpd.GeoDataFrame,
+    relevant_nodes: gpd.GeoDataFrame,
+    split_points: list,
+) -> np.ndarray:
+    """If there are primes on both ``C``s, connect them. If there's
+    prime on one ``C``, connect it to the other ``C``. If there are
+    no primes, get midpoints on ``C``s and connect those.
+
+    Parameters
+    ----------
+    primes : geopandas.GeoSeries
+        Nodes that are external to the artifacts, but need to be kept
+    conts_groups : geopandas.GeoDataFrame
+        All ``C`` labeled edges dissolved by connected component label.
+    highest_hierarchy : geopandas.GeoDataFrame
+        ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
+    relevant_targets : geopandas.GeoDataFrame
+        The nodes forming the artifact.
+    split_points : list
+        Points to be used for topological corrections.
+
+    Returns
+    -------
+    np.ndarray
+        New linestrings for reconnections.
+    """
+
     if primes.empty:
         # midpoints solution
         c0 = conts_groups.geometry.iloc[0]
@@ -232,10 +256,34 @@ def ccss_special_case(
     return new_connections
 
 
-def filter_connections(primes, relevant_targets, conts_groups, new_connections):
-    # The skeleton returns connections to all the nodes. We need to keep only
-    # some, if there are multiple connections to a single C. We don't touch
-    # the other.
+def filter_connections(
+    primes: gpd.GeoSeries,
+    relevant_targets: gpd.GeoDataFrame,
+    conts_groups: gpd.GeoDataFrame,
+    new_connections: np.ndarray,
+) -> tuple[np.ndarray]:
+    """The skeleton returns connections to all the nodes. We need to keep only
+    some, if there are multiple connections to a single C. We don't touch the other.
+
+    Parameters
+    ----------
+    primes : geopandas.GeoSeries
+        Nodes that are external to the artifacts, but need to be kept
+    relevant_targets : geopandas.GeoDataFrame
+        The nodes forming the artifact.
+    conts_groups : geopandas.GeoDataFrame
+        All ``C`` labeled edges dissolved by connected component label.
+    new_connections : numpy.ndarray
+        New linestrings for reconnections.
+
+    Returns
+    -------
+    tuple[np.ndarray]
+        - Updated ``new_connections``
+        - Connections intersecting ``C``
+        - Connections intersecting ``primes``
+    """
+
     unwanted = []
     keeping = []
     conn_c = []
@@ -272,19 +320,13 @@ def filter_connections(primes, relevant_targets, conts_groups, new_connections):
                 unwanted.append(connections_intersecting_c)
 
     if len(unwanted) > 0:
+        wanted_mask = ~np.isin(new_connections, np.concatenate(unwanted))
         if len(keeping) > 0:
             new_connections = np.concatenate(
-                [
-                    new_connections[
-                        ~np.isin(new_connections, np.concatenate(unwanted))
-                    ],
-                    np.concatenate(keeping),
-                ]
+                [new_connections[wanted_mask], np.concatenate(keeping)]
             )
         else:
-            new_connections = new_connections[
-                ~np.isin(new_connections, np.concatenate(unwanted))
-            ]
+            new_connections = new_connections[wanted_mask]
     return (
         new_connections,
         np.concatenate(conn_c) if len(conn_c) > 0 else np.array([]),
@@ -308,7 +350,7 @@ def avoid_forks(
     highest_hierarchy : geopandas.GeoDataFrame
         ``edges`` in the ``C`` continuity group – ``edges[~es_mask]``.
     new_connections : numpy.ndarray
-        New linestring for reconnections.
+        New linestrings for reconnections.
     relevant_targets : geopandas.GeoDataFrame
         The nodes forming the artifact.
     artifact : geopandas.GeoDataFrame
@@ -352,7 +394,7 @@ def reconnect(
     conts_groups : geopandas.GeoDataFrame
         All ``C`` labeled edges dissolved by connected component label.
     new_connections : numpy.ndarray
-        New linestring for reconnections.
+        New linestrings for reconnections.
     artifact : geopandas.GeoDataFrame
         The polygonal representation of the artifact.
     split_points : list
@@ -397,7 +439,7 @@ def remove_dangles(
     Parameters
     ----------
     new_connections : np.ndarray
-        New linestring for reconnections.
+        New linestrings for reconnections.
     artifact : geopandas.GeoDataFrame
         The polygonal representation of the artifact.
     eps : float = 1e-4
