@@ -528,23 +528,37 @@ def get_type(edges, shared_edge):
     return "E"
 
 
-def get_solution(group, roads):
+def get_solution(group: gpd.GeoDataFrame, roads: gpd.GeoDataFrame) -> pd.Series:
+    """Determine the solution for paired planar artifacts.
+
+    Parameters
+    ----------
+    group : geopandas.GeoDataFrame
+        Dissolved group of connected planar artifacts.
+    roads : geopandas.GeoDataFrame
+        Road network data.
+
+    Returns
+    -------
+    pandas.Series
+        The determined solution and edge to drop.
+    """
+
+    def _relate(loc: int) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
+        """Isolate intersecting & covering road geometries."""
+        _geom = group.geometry.iloc[loc]
+        _roads = roads.iloc[roads.sindex.query(_geom, predicate="intersects")]
+        _covers = _roads.iloc[_roads.sindex.query(_geom, predicate="covers")]
+        return _roads, _covers
+
     cluster_geom = group.union_all()
 
-    roads_a = roads.iloc[
-        roads.sindex.query(group.geometry.iloc[0], predicate="intersects")
-    ]
-    roads_b = roads.iloc[
-        roads.sindex.query(group.geometry.iloc[1], predicate="intersects")
-    ]
-    covers_a = roads_a.iloc[
-        roads_a.sindex.query(group.geometry.iloc[0], predicate="covers")
-    ]
-    covers_b = roads_b.iloc[
-        roads_b.sindex.query(group.geometry.iloc[1], predicate="covers")
-    ]
-    # find the road segment that is contained within the cluster geometry
+    roads_a, covers_a = _relate(0)
+    roads_b, covers_b = _relate(1)
+
+    # Find the road segment that is contained within the cluster geometry
     shared = roads.index[roads.sindex.query(cluster_geom, predicate="contains")]
+
     if shared.empty or covers_a.empty or covers_b.empty:
         return pd.Series({"solution": "non_planar", "drop_id": None})
 
@@ -555,19 +569,15 @@ def get_solution(group, roads):
     ):
         return pd.Series({"solution": "drop_interline", "drop_id": shared})
 
-    seen_by_a = get_type(
-        covers_a,
-        shared,
-    )
-    seen_by_b = get_type(
-        covers_b,
-        shared,
-    )
+    seen_by_a = get_type(covers_a, shared)
+    seen_by_b = get_type(covers_b, shared)
 
     if seen_by_a == "C" and seen_by_b == "C":
         return pd.Series({"solution": "iterate", "drop_id": shared})
+
     if seen_by_a == seen_by_b:
         return pd.Series({"solution": "drop_interline", "drop_id": shared})
+
     return pd.Series({"solution": "skeleton", "drop_id": shared})
 
 
