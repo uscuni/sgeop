@@ -50,7 +50,7 @@ KNOWN_BAD_GEOMS = {
 
 
 def polygonize(
-    collection: line_collection,
+    collection: line_collection,  # type: ignore[valid-type]
     as_geom: bool = True,  # type: ignore[valid-type]
 ) -> shapely.Polygon | geopandas.GeoSeries:
     """Testing helper -- Create polygon from collection of lines."""
