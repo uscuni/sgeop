@@ -403,7 +403,7 @@ def consolidate_nodes(
     Replace clusters of nodes with a single node (weighted centroid
     of a cluster) and snap linestring geometry to it. Cluster is
     defined using hierarchical clustering with average linkage
-    on coordinates cut at a cophenetic distance equal to ``tolerance`.
+    on coordinates cut at a cophenetic distance equal to ``tolerance``.
 
     The use of hierachical clustering avoids the chaining effect of a sequence
     of intersections within ``tolerance`` from each other that would happen with
