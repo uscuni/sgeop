@@ -14,7 +14,9 @@ from scipy import spatial
 from .nodes import consolidate_nodes
 
 
-def _is_within(line: np.ndarray, poly: shapely.Polygon, rtol: float = 1e-4) -> bool:
+def _is_within(
+    line: np.ndarray, poly: shapely.Polygon, rtol: float = 1e-4
+) -> np.ndarray:
     """Check if the line is within a polygon with a set relative tolerance.
 
     Parameters
@@ -28,7 +30,7 @@ def _is_within(line: np.ndarray, poly: shapely.Polygon, rtol: float = 1e-4) -> b
 
     Returns
     -------
-    np.ndarray[bool]
+    np.ndarray
         ``True`` if ``line`` is either entirely within ``poly`` or if
         ``line`` is within `poly`` based on a relaxed ``rtol`` relative tolerance.
     """
@@ -270,7 +272,7 @@ def voronoi_skeleton(
     edgelines = _as_parts(edgelines)
     edgelines = _consolidate(edgelines, consolidation_tolerance)
 
-    return np.array(edgelines), np.array(splitters)
+    return edgelines, np.array(splitters)
 
 
 def _remove_sliver(
