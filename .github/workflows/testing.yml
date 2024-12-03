@@ -7,7 +7,7 @@
      branches:
        - "*"
    schedule:
-     - cron: '59 23 * * *'
+     - cron: "59 23 * * *"
    workflow_dispatch:
     inputs:
       version:
