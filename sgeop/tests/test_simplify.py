@@ -87,6 +87,7 @@ def test_simplify_network_full_fua(aoi, tol, known_length):
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
     observed_length = observed.geometry.length.sum()
+    assert "highway" in observed.columns
 
     # storing GH artifacts
     artifact_dir = ci_artifacts / aoi

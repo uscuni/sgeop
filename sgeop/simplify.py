@@ -1,4 +1,5 @@
 import logging
+import typing
 import warnings
 
 import geopandas as gpd
@@ -253,7 +254,8 @@ def simplify_singletons(
                 stacklevel=2,
             )
 
-    # Split lines on new nodes
+    cleaned_roads = roads.drop(to_drop)
+    # split lines on new nodes
     cleaned_roads = split(split_points, roads.drop(to_drop), roads.crs)
 
     if to_add:
@@ -266,12 +268,20 @@ def simplify_singletons(
         new["_status"] = "new"
         new.geometry = new.simplify(max_segment_length * simplification_factor)
         new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
+        agg: dict[str, str | typing.Callable] = {"_status": _status}
+        for c in cleaned_roads.columns.drop(cleaned_roads.active_geometry_name):
+            if c != "_status":
+                agg[c] = "first"
         non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
-        new_roads = remove_false_nodes(non_empties, aggfunc={"_status": _status})
+        new_roads = remove_false_nodes(non_empties, aggfunc=agg)
 
-        return new_roads
+        final = new_roads
     else:
-        return cleaned_roads
+        final = cleaned_roads
+
+    if "coins_group" in final.columns:
+        final = final.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
+    return final
 
 
 def simplify_pairs(
@@ -358,6 +368,17 @@ def simplify_pairs(
 
     # Determine typology dispatch if artifacts are present
     if not artifacts_w_info.empty:
+        agg = {
+            "coins_group": "first",
+            "coins_end": lambda x: x.any(),
+            "_status": _status,
+        }
+        for c in roads.columns.drop(
+            [roads.active_geometry_name, "coins_count"], errors="ignore"
+        ):
+            if c not in agg:
+                agg[c] = "first"
+
         sol_drop = "solution == 'drop_interline'"
         sol_iter = "solution == 'iterate'"
 
@@ -368,11 +389,7 @@ def simplify_pairs(
         # Re-run node cleaning on subset of fresh road edges
         roads_cleaned = remove_false_nodes(
             _drop_roads,
-            aggfunc={
-                "coins_group": "first",
-                "coins_end": lambda x: x.any(),
-                "_status": _status,
-            },
+            aggfunc=agg,
         )
 
         # Isolate drops to create merged pairs
@@ -398,9 +415,7 @@ def simplify_pairs(
         _1st = pd.DataFrame()
         _2nd = pd.DataFrame()
         for_skeleton = pd.DataFrame()
-        roads_cleaned = roads[
-            ["coins_group", "coins_end", "_status", roads.geometry.name]
-        ]
+        roads_cleaned = roads
 
     # Generate counts of COINs groups for edges
     coins_count = (
@@ -536,8 +551,12 @@ def simplify_clusters(
         max_segment_length * simplification_factor
     )
     new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
+    agg: dict[str, str | typing.Callable] = {"_status": _status}
+    for c in new_roads.columns.drop(new_roads.active_geometry_name):
+        if c != "_status":
+            agg[c] = "first"
     new_roads = remove_false_nodes(
-        new_roads[~new_roads.is_empty], aggfunc={"_status": _status}
+        new_roads[~new_roads.is_empty], aggfunc=agg
     ).drop_duplicates("geometry")
 
     return new_roads
@@ -723,8 +742,10 @@ def simplify_network(
     raw_roads = roads.copy()
     ################################################################################
 
+    # NOTE: this keeps attributes but resets index
     roads = fix_topology(roads, eps=eps)
     # Merge nearby nodes (up to double of distance used in skeleton).
+    # NOTE: this drops attributes and resets index
     roads = consolidate_nodes(roads, tolerance=max_segment_length * 2.1)
 
     # Identify artifacts
@@ -873,6 +894,7 @@ def simplify_loop(
     clusters = artifacts.loc[artifacts["comp"].isin(counts[counts > 2].index)].copy()
 
     if not singles.empty:
+        # NOTE: this drops attributes
         roads = simplify_singletons(
             singles,
             roads,
@@ -901,4 +923,6 @@ def simplify_loop(
             consolidation_tolerance=consolidation_tolerance,
         )
 
+    if "coins_group" in roads.columns:
+        roads = roads.drop(columns=[c for c in roads.columns if c.startswith("coins_")])
     return roads
