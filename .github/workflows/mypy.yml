@@ -1,0 +1,40 @@
+ name: MyPy Type Checking
+
+ on:
+   push:
+     branches: [main]
+   pull_request:
+     branches:
+       - "*"
+   schedule:
+     - cron: "59 23 * * *"
+   workflow_dispatch:
+    inputs:
+      version:
+        description: Manual Type Checking
+        default: type_checking
+        required: false
+
+ jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: setup micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: ci/py313_sgeop-latest.yaml
+          create-args: >-
+            mypy
+
+      - name: Install package
+        run: pip install .
+
+      - name: Check package
+        run: |
+            mypy sgeop/ --ignore-missing-imports --install-types --non-interactive

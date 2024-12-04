@@ -5,6 +5,7 @@ import geopandas as gpd
 import momepy
 import numpy as np
 import pandas as pd
+import shapely
 from libpysal import graph
 from scipy import sparse
 
@@ -34,8 +35,8 @@ def _link_nodes_artifacts(
     step: str,
     roads: gpd.GeoDataFrame,
     artifacts: gpd.GeoDataFrame,
-    eps: float,
-) -> tuple[gpd.GeoDataFrame]:
+    eps: None | float,
+) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Helper to prep nodes & artifacts when simplifying singletons & pairs."""
 
     # Get nodes from the network
@@ -179,9 +180,9 @@ def simplify_singletons(
     artifacts["ces_type"] = ces_type
 
     # Collect changes
-    to_drop = []
-    to_add = []
-    split_points = []
+    to_drop: list[int] = []
+    to_add: list[int] = []
+    split_points: list[shapely.Point] = []
 
     # Isolate planar artifacts
     planar = artifacts[~artifacts["non_planar"]].copy()
@@ -514,8 +515,8 @@ def simplify_clusters(
     nodes = momepy.nx_to_gdf(momepy.node_degree(momepy.gdf_to_nx(roads)), lines=False)
 
     # Collect changes
-    to_drop = []
-    to_add = []
+    to_drop: list[int] = []
+    to_add: list[int] = []
 
     for _, artifact in artifacts.groupby("comp"):
         # Get artifact cluster polygon
