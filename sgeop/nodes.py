@@ -143,7 +143,7 @@ def get_components(
 def weld_edges(
     edgelines: list | np.ndarray | gpd.GeoSeries,
     ignore: None | gpd.GeoSeries = None,
-) -> list:
+) -> list | np.ndarray | gpd.GeoSeries:
     """Combine lines sharing an endpoint (if only 2 lines share that point).
     Lightweight version of ``remove_false_nodes()``.
 
@@ -221,7 +221,7 @@ def _identify_degree_mismatch(
 
 def _makes_loop_contact(
     edges: gpd.GeoDataFrame, sindex_kws: dict
-) -> tuple[gpd.GeoSeries]:
+) -> tuple[gpd.GeoSeries, gpd.GeoSeries]:
     """Helper to identify:
     1. loop nodes intersecting non-loops
     2. loop nodes intersecting other loops
@@ -247,7 +247,9 @@ def _makes_loop_contact(
     return nodes_non_loops.geometry, nodes_loops.geometry
 
 
-def _loops_and_non_loops(edges: gpd.GeoDataFrame) -> tuple[gpd.GeoDataFrame]:
+def _loops_and_non_loops(
+    edges: gpd.GeoDataFrame,
+) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame]:
     """Bifurcate edge gdf into loops and non-loops."""
     loop_mask = edges.is_ring
     not_loops = edges[~loop_mask]
