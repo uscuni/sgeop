@@ -6,11 +6,11 @@ import pandas
 import pytest
 import shapely
 
-import sgeop
+import neatnet
 
 # set the global exception raiser for testing & debugging
 # See gh#121
-sgeop.simplify.DEBUGGING = True
+neatnet.simplify.DEBUGGING = True
 
 line_collection = (  # type: ignore[valid-type, misc]
     list[shapely.LineString]
@@ -87,7 +87,7 @@ def geom_test(
 
     if aoi and aoi.startswith("apalachicola"):
         # Varied index order across OSs.
-        # See [https://github.com/uscuni/sgeop/pull/104#issuecomment-2495572388]
+        # See [https://github.com/uscuni/neatnet/pull/104#issuecomment-2495572388]
         geoms1 = geoms1.sort_values().reset_index(drop=True)
         geoms2 = geoms2.sort_values().reset_index(drop=True)
 
@@ -133,7 +133,7 @@ def pytest_configure(config):  # noqa: ARG001
     """PyTest session attributes, methods, etc."""
 
     valid_env_types = ["oldest", "latest", "dev"]
-    pytest.env_type = config.getoption("env_type").split("-")[-1]
+    pytest.env_type = config.getoption("env_type").split("_")[-1]
     assert pytest.env_type in valid_env_types
 
     pytest.ubuntu = "ubuntu" in platform.version().lower()

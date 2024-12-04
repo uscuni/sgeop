@@ -9,7 +9,7 @@ import pytest
 import shapely
 from pandas.testing import assert_series_equal
 
-import sgeop
+import neatnet
 
 crs = "EPSG:3857"
 
@@ -151,7 +151,7 @@ known_8 = geopandas.GeoDataFrame(
     ids=[f"case{c}-{t}" for c, t in list(itertools.product(cases, types))],
 )
 def test_split(split_points, cleaned_roads, known):
-    observed = sgeop.nodes.split(split_points, cleaned_roads, crs)
+    observed = neatnet.nodes.split(split_points, cleaned_roads, crs)
     assert isinstance(observed, geopandas.GeoDataFrame)
     assert observed.crs == known.crs == cleaned_roads.crs == crs
     pytest.geom_test(observed.geometry, known.geometry)
@@ -181,7 +181,7 @@ line_1_6 = shapely.LineString((point_1, point_6))
     ids=["exact", "precise", "relaxed", "ignore", "extend"],
 )
 def test_snap_n_split(edge, split_point, tol, known):
-    observed = sgeop.nodes._snap_n_split(edge, split_point, tol)
+    observed = neatnet.nodes._snap_n_split(edge, split_point, tol)
     numpy.testing.assert_array_equal(observed, known)
 
 
@@ -255,7 +255,7 @@ case_ids_get_components = [
     ids=case_ids_get_components,
 )
 def test_get_components(edgelines, ignore, known):
-    observed = sgeop.nodes.get_components(edgelines, ignore=ignore)
+    observed = neatnet.nodes.get_components(edgelines, ignore=ignore)
     numpy.testing.assert_array_equal(observed, known)
 
 
@@ -304,7 +304,7 @@ case_ids_weld_edges = copy.deepcopy(case_ids_get_components)
     ids=case_ids_weld_edges,
 )
 def test_weld_edges(edgelines, ignore, known):
-    observed = sgeop.nodes.weld_edges(edgelines, ignore=ignore)
+    observed = neatnet.nodes.weld_edges(edgelines, ignore=ignore)
     numpy.testing.assert_array_equal(observed, known)
 
 
@@ -353,13 +353,13 @@ class TestInduceNodes:
             }
         )
         edges = geopandas.GeoDataFrame(geometry=[self.line1030, self.line2021])
-        observed = sgeop.nodes.induce_nodes(edges)
+        observed = neatnet.nodes.induce_nodes(edges)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_not_induced_simple(self):
         known = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
         edges = geopandas.GeoDataFrame(geometry=[self.line1030, self.line20121])
-        observed = sgeop.nodes.induce_nodes(edges)
+        observed = neatnet.nodes.induce_nodes(edges)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_induced_complex(self):
@@ -380,7 +380,7 @@ class TestInduceNodes:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2040, self.line41302141, self.line215315251215]
         )
-        observed = sgeop.nodes.induce_nodes(edges)
+        observed = neatnet.nodes.induce_nodes(edges)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_not_induced_complex(self):
@@ -404,7 +404,7 @@ class TestInduceNodes:
                 self.line251215315251,
             ]
         )
-        observed = sgeop.nodes.induce_nodes(edges)
+        observed = neatnet.nodes.induce_nodes(edges)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
 
@@ -425,13 +425,13 @@ class TestIdentifyDegreeMismatch:
     def test_no_mismatch(self):
         known = geopandas.GeoSeries([])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line413021])
-        observed = sgeop.nodes._identify_degree_mismatch(edges, self.sindex_kws)
+        observed = neatnet.nodes._identify_degree_mismatch(edges, self.sindex_kws)
         geopandas.testing.assert_geoseries_equal(observed, known)
 
     def test_mismatch(self):
         known = geopandas.GeoSeries([self.p41], index=[2])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
-        observed = sgeop.nodes._identify_degree_mismatch(edges, self.sindex_kws)
+        observed = neatnet.nodes._identify_degree_mismatch(edges, self.sindex_kws)
         geopandas.testing.assert_geoseries_equal(observed, known)
 
 
@@ -466,7 +466,7 @@ class TestMakesLoopContact:
         known_off_loops = geopandas.GeoSeries([self.p30], index=[1])
         known_on_loops = geopandas.GeoSeries([])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -478,7 +478,7 @@ class TestMakesLoopContact:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2030, self.line3040, self.line41302141]
         )
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -488,7 +488,7 @@ class TestMakesLoopContact:
         known_off_loops = geopandas.GeoSeries([self.p30, self.p30], index=[0, 3])
         known_on_loops = geopandas.GeoSeries([])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line30214130])
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -500,7 +500,7 @@ class TestMakesLoopContact:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2030, self.line3040, self.line30214130]
         )
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -512,7 +512,7 @@ class TestMakesLoopContact:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line41302141, self.line215315251215]
         )
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -524,7 +524,7 @@ class TestMakesLoopContact:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line41302141, self.line251215315251]
         )
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -536,7 +536,7 @@ class TestMakesLoopContact:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2040, self.line41302141, self.line251215315251]
         )
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -546,7 +546,7 @@ class TestMakesLoopContact:
         known_off_loops = geopandas.GeoSeries([])
         known_on_loops = geopandas.GeoSeries([])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line3041])
-        observed_off_loops, observed_on_loops = sgeop.nodes._makes_loop_contact(
+        observed_off_loops, observed_on_loops = neatnet.nodes._makes_loop_contact(
             edges, self.sindex_kws
         )
         geopandas.testing.assert_geoseries_equal(observed_off_loops, known_off_loops)
@@ -579,7 +579,7 @@ class TestLoopsAndNonloops:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line41302141, self.line251215315251]
         )
-        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+        observed_loops, observed_non_loops = neatnet.nodes._loops_and_non_loops(edges)
 
         geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
         geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
@@ -588,7 +588,7 @@ class TestLoopsAndNonloops:
         known_loops = geopandas.GeoDataFrame(geometry=[self.line41302141], index=[1])
         known_non_loops = geopandas.GeoDataFrame(geometry=[self.line2040])
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
-        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+        observed_loops, observed_non_loops = neatnet.nodes._loops_and_non_loops(edges)
 
         geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
         geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
@@ -599,7 +599,7 @@ class TestLoopsAndNonloops:
             geometry=[self.line2040, self.line413021]
         )
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line413021])
-        observed_loops, observed_non_loops = sgeop.nodes._loops_and_non_loops(edges)
+        observed_loops, observed_non_loops = neatnet.nodes._loops_and_non_loops(edges)
 
         geopandas.testing.assert_geodataframe_equal(observed_loops, known_loops)
         geopandas.testing.assert_geodataframe_equal(observed_non_loops, known_non_loops)
@@ -652,17 +652,17 @@ class TestRemoveFalseNodes:
     def test_single_series(self):
         one_in_series = self.series[:0].copy()
         known = one_in_series
-        observed = sgeop.nodes.remove_false_nodes(one_in_series)
+        observed = neatnet.nodes.remove_false_nodes(one_in_series)
         geopandas.testing.assert_geoseries_equal(observed, known)
 
     def test_series(self):
         known = geopandas.GeoDataFrame(geometry=self.known_geoms)
-        observed = sgeop.nodes.remove_false_nodes(self.series)
+        observed = neatnet.nodes.remove_false_nodes(self.series)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_frame(self):
         known = geopandas.GeoDataFrame(geometry=self.known_geoms)
-        observed = sgeop.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_false_nodes(
             geopandas.GeoDataFrame(geometry=self.series)
         )
         geopandas.testing.assert_geodataframe_equal(observed, known)
@@ -673,7 +673,7 @@ class TestRemoveFalseNodes:
             geometry=self.known_geoms,
             columns=["geometry", "animal"],
         )
-        observed = sgeop.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_false_nodes(
             geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series)
         )
         geopandas.testing.assert_geodataframe_equal(observed, known)
@@ -684,7 +684,7 @@ class TestRemoveFalseNodes:
             geometry=self.known_geoms,
             columns=["geometry", "animal"],
         )
-        observed = sgeop.nodes.remove_false_nodes(
+        observed = neatnet.nodes.remove_false_nodes(
             geopandas.GeoDataFrame({"animal": self.attrs}, geometry=self.series),
             aggfunc="last",
         )
@@ -695,7 +695,7 @@ class TestRemoveFalseNodes:
             momepy.datasets.get_path("tests"), layer="network"
         )
         false_network["vals"] = range(len(false_network))
-        fixed = sgeop.remove_false_nodes(false_network).reset_index(drop=True)
+        fixed = neatnet.remove_false_nodes(false_network).reset_index(drop=True)
         assert len(fixed) == 56
         assert isinstance(fixed, geopandas.GeoDataFrame)
         assert false_network.crs.equals(fixed.crs)
@@ -714,7 +714,7 @@ class TestRemoveFalseNodes:
             numpy.array(fixed.loc[55].geometry.coords), expected
         )
 
-        fixed_series = sgeop.nodes.remove_false_nodes(
+        fixed_series = neatnet.nodes.remove_false_nodes(
             false_network.geometry
         ).reset_index(drop=True)
         assert len(fixed_series) == 56
@@ -722,7 +722,7 @@ class TestRemoveFalseNodes:
         assert false_network.crs.equals(fixed_series.crs)
 
         multiindex = false_network.explode(index_parts=True)
-        fixed_multiindex = sgeop.nodes.remove_false_nodes(multiindex)
+        fixed_multiindex = neatnet.nodes.remove_false_nodes(multiindex)
         assert len(fixed_multiindex) == 56
         assert isinstance(fixed, geopandas.GeoDataFrame)
         assert sorted(false_network.columns) == sorted(fixed.columns)
@@ -732,7 +732,7 @@ class TestRemoveFalseNodes:
             momepy.datasets.get_path("bubenec"), layer="streets"
         )
         known = df_streets.drop([4, 7, 17, 22]).reset_index(drop=True)
-        observed = sgeop.nodes.remove_false_nodes(known).reset_index(drop=True)
+        observed = neatnet.nodes.remove_false_nodes(known).reset_index(drop=True)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
 
@@ -754,7 +754,7 @@ class TestRotateLoopCoords:
 
     def test_needs_rotate_intersects_1(self):
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line41302141])
-        observed = sgeop.nodes._rotate_loop_coords(
+        observed = neatnet.nodes._rotate_loop_coords(
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
@@ -764,7 +764,7 @@ class TestRotateLoopCoords:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2030, self.line3040, self.line41302141]
         )
-        observed = sgeop.nodes._rotate_loop_coords(
+        observed = neatnet.nodes._rotate_loop_coords(
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
@@ -772,7 +772,7 @@ class TestRotateLoopCoords:
 
     def test_no_rotate_intersects_1(self):
         edges = geopandas.GeoDataFrame(geometry=[self.line2040, self.line30214130])
-        observed = sgeop.nodes._rotate_loop_coords(
+        observed = neatnet.nodes._rotate_loop_coords(
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
@@ -782,7 +782,7 @@ class TestRotateLoopCoords:
         edges = geopandas.GeoDataFrame(
             geometry=[self.line2030, self.line3040, self.line30214130]
         )
-        observed = sgeop.nodes._rotate_loop_coords(
+        observed = neatnet.nodes._rotate_loop_coords(
             edges[edges.is_ring].geometry,
             edges[~edges.is_ring],
         )
@@ -824,7 +824,7 @@ def test_fix_topology():
         }
     )
 
-    observed = sgeop.nodes.fix_topology(
+    observed = neatnet.nodes.fix_topology(
         geopandas.GeoDataFrame(
             geometry=[
                 line2040,
@@ -879,21 +879,21 @@ class TestConsolidateNodes:
         known = geopandas.GeoDataFrame(
             {"geometry": numpy.array([self.line1]), "_status": ["original"]}
         )
-        observed = sgeop.nodes.consolidate_nodes(geopandas.GeoSeries([self.line1]))
+        observed = neatnet.nodes.consolidate_nodes(geopandas.GeoSeries([self.line1]))
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_series_only_ends(self):
         known = geopandas.GeoDataFrame(
             {"geometry": [self.line1], "_status": ["original"]}
         )
-        observed = sgeop.nodes.consolidate_nodes(geopandas.GeoSeries([self.line1]))
+        observed = neatnet.nodes.consolidate_nodes(geopandas.GeoSeries([self.line1]))
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_frame_only_ends(self):
         known = geopandas.GeoDataFrame(
             {"geometry": [self.line1], "_status": ["original"]}
         )
-        observed = sgeop.nodes.consolidate_nodes(
+        observed = neatnet.nodes.consolidate_nodes(
             geopandas.GeoDataFrame(geometry=[self.line1]), preserve_ends=True
         )
         geopandas.testing.assert_geodataframe_equal(observed, known)
@@ -902,21 +902,21 @@ class TestConsolidateNodes:
         known = geopandas.GeoDataFrame(
             {"geometry": self.lines_array, "_status": ["original"] * 8}
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_array, tolerance=0.1)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_array, tolerance=0.1)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_series_no_change(self):
         known = geopandas.GeoDataFrame(
             {"geometry": self.lines_series, "_status": ["original"] * 8}
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_series, tolerance=0.1)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_series, tolerance=0.1)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_frame_no_change(self):
         known = geopandas.GeoDataFrame(
             {"geometry": self.lines_series, "_status": ["original"] * 8}
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=0.1)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_gframe, tolerance=0.1)
         geopandas.testing.assert_geodataframe_equal(observed, known)
 
     def test_t05_pe(self):
@@ -940,7 +940,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 4 + ["original"] * 3,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(
+        observed = neatnet.nodes.consolidate_nodes(
             self.lines_gframe, tolerance=0.5, preserve_ends=True
         )
 
@@ -972,7 +972,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 6,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=1)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_gframe, tolerance=1)
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
@@ -993,7 +993,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 6,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=2)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_gframe, tolerance=2)
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
@@ -1016,7 +1016,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 4,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=5)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_gframe, tolerance=5)
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
@@ -1039,7 +1039,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 4,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(
+        observed = neatnet.nodes.consolidate_nodes(
             self.lines_gframe, tolerance=5, preserve_ends=True
         )
 
@@ -1062,7 +1062,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 3,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(self.lines_gframe, tolerance=7)
+        observed = neatnet.nodes.consolidate_nodes(self.lines_gframe, tolerance=7)
 
         assert_series_equal(known._status, observed._status)
         pytest.geom_test(known, observed, tolerance=0.000001)
@@ -1085,7 +1085,7 @@ class TestConsolidateNodes:
                 "_status": ["changed"] * 4,
             }
         )
-        observed = sgeop.nodes.consolidate_nodes(
+        observed = neatnet.nodes.consolidate_nodes(
             self.lines_gframe, tolerance=7, preserve_ends=True
         )
 

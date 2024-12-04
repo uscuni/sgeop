@@ -25,18 +25,18 @@
        matrix:
          os: [ubuntu-latest]
          environment-file: [
-            py311_sgeop-oldest,
-            py311_sgeop-latest,
-            py312_sgeop-latest,
-            py313_sgeop-latest,
-            py313_sgeop-dev,
+            py311_oldest,
+            py311_latest,
+            py312_latest,
+            py313_latest,
+            py313_dev,
          ]
          include:
-           - environment-file: py313_sgeop-latest
+           - environment-file: py313_latest
              os: macos-13 # Intel
-           - environment-file: py313_sgeop-latest
+           - environment-file: py313_latest
              os: macos-latest # Apple Silicon
-           - environment-file: py313_sgeop-latest
+           - environment-file: py313_latest
              os: windows-latest
        fail-fast: false
 
@@ -65,17 +65,17 @@
        - name: run tests
          run: |
            pytest \
-           sgeop/ \
+           neatnet/ \
            --verbose \
            -r a \
            --numprocesses logical \
            --color yes \
-           --cov sgeop \
+           --cov neatnet \
            --cov-append \
            --cov-report term-missing \
            --cov-report xml . \
            --env_type ${{ matrix.environment-file }}
-       
+
        - name: zip artifacts - Ubuntu & macOS
          run: zip ci_artifacts.zip ci_artifacts -r
          if: matrix.os != 'windows-latest' && (success() || failure())
@@ -91,7 +91,7 @@
            name: ci_artifacts-${{ matrix.os }}-${{ matrix.environment-file }}
            path: ci_artifacts.zip
          if: success() || failure()
-       
+
        - name: codecov
          uses: codecov/codecov-action@v4
          with:

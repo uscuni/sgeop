@@ -6,7 +6,7 @@ import pandas
 import pytest
 import shapely
 
-import sgeop
+import neatnet
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def roads() -> geopandas.GeoDataFrame:
 
 
 def test_continuity(roads):
-    observed_continuity, observed_coins = sgeop.continuity.continuity(roads)
+    observed_continuity, observed_coins = neatnet.continuity.continuity(roads)
 
     assert isinstance(observed_continuity, geopandas.GeoDataFrame)
     known_continuity = (
@@ -94,9 +94,9 @@ def test_get_stroke_info(roads):
     known_e_ = [0, 0, 1, 0, 0, 0, 1]
     known_s_ = [0, 0, 1, 1, 1, 0, 1]
 
-    observed = sgeop.continuity.get_stroke_info(
-        sgeop.artifacts.get_artifacts(roads, threshold=1)[0],
-        sgeop.continuity.continuity(roads.copy())[0],
+    observed = neatnet.continuity.get_stroke_info(
+        neatnet.artifacts.get_artifacts(roads, threshold=1)[0],
+        neatnet.continuity.continuity(roads.copy())[0],
     )
 
     observed_strokes = observed[0]

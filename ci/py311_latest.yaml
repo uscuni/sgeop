@@ -1,8 +1,8 @@
-name: py313_sgeop-latest
+name: py311_neatnet-latest
 channels:
   - conda-forge
 dependencies:
-  - python=3.13
+  - python=3.11
   - esda
   - geopandas
   - libpysal

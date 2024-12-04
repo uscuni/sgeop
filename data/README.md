@@ -3,7 +3,7 @@
 ## Contents
 
 * This `README.md`
-* `generate_simplified.py` – see [sgeop#7](https://github.com/uscuni/sgeop/issues/7)
+* `generate_simplified.py` – see [neatnet#7](https://github.com/uscuni/neatnet/issues/7)
 * Data
    * There is a directory for each FUA listed below that contains 2 files:
       * `original.parquet`: The original input street network derived from [OSM](https://www.openstreetmap.org/about) via [OSMNX](https://osmnx.readthedocs.io/en/stable/).
@@ -22,4 +22,4 @@
 
 ---------------------------------------
 
-Copyright (c) 2024-, sgeop Developers
+Copyright (c) 2024-, neatnet Developers

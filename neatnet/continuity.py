@@ -24,7 +24,7 @@ def continuity(
     Notes
     -----
     The returned ``coins`` object is not used in production, but is
-    very helpful in testing & debugging. See gh:sgeop#49.
+    very helpful in testing & debugging. See gh:neatnet#49.
     """
     roads = roads.copy()
 
