@@ -4,7 +4,7 @@ import pandas
 import pytest
 import shapely
 
-import sgeop
+import neatnet
 
 
 class TestIsWithin:
@@ -15,7 +15,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (8, 8)))
 
         known = True
-        observed = sgeop.geometry._is_within(line, self.polygon)
+        observed = neatnet.geometry._is_within(line, self.polygon)
 
         assert known == observed
 
@@ -23,7 +23,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 10.0001)))
 
         known = True
-        observed = sgeop.geometry._is_within(line, self.polygon)
+        observed = neatnet.geometry._is_within(line, self.polygon)
 
         assert known == observed
 
@@ -31,7 +31,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 10.001)))
 
         known = False
-        observed = sgeop.geometry._is_within(line, self.polygon)
+        observed = neatnet.geometry._is_within(line, self.polygon)
 
         assert known == observed
 
@@ -39,7 +39,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 10.0000001)))
 
         known = True
-        observed = sgeop.geometry._is_within(line, self.polygon, rtol=1e-7)
+        observed = neatnet.geometry._is_within(line, self.polygon, rtol=1e-7)
 
         assert known == observed
 
@@ -47,7 +47,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 10.000001)))
 
         known = False
-        observed = sgeop.geometry._is_within(line, self.polygon, rtol=1e-7)
+        observed = neatnet.geometry._is_within(line, self.polygon, rtol=1e-7)
 
         assert known == observed
 
@@ -55,7 +55,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 11)))
 
         known = True
-        observed = sgeop.geometry._is_within(line, self.polygon, rtol=1)
+        observed = neatnet.geometry._is_within(line, self.polygon, rtol=1)
 
         assert known == observed
 
@@ -63,7 +63,7 @@ class TestIsWithin:
         line = shapely.LineString(((2, 2), (2, 12)))
 
         known = False
-        observed = sgeop.geometry._is_within(line, self.polygon, rtol=1)
+        observed = neatnet.geometry._is_within(line, self.polygon, rtol=1)
 
         assert known == observed
 
@@ -71,7 +71,7 @@ class TestIsWithin:
         line = shapely.LineString(((11, 11), (12, 12)))
 
         known = False
-        observed = sgeop.geometry._is_within(line, self.polygon)
+        observed = neatnet.geometry._is_within(line, self.polygon)
 
         assert known == observed
 
@@ -85,22 +85,22 @@ class TestAngleBetween2Lines:
 
     def test_q1(self):
         known = 90.0
-        observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line3)
+        observed = neatnet.geometry.angle_between_two_lines(self.line1, self.line3)
         assert observed == known
 
     def test_q2(self):
         known = 90.0
-        observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line2)
+        observed = neatnet.geometry.angle_between_two_lines(self.line1, self.line2)
         assert observed == known
 
     def test_q3(self):
         known = 90.0
-        observed = sgeop.geometry.angle_between_two_lines(self.line2, self.line4)
+        observed = neatnet.geometry.angle_between_two_lines(self.line2, self.line4)
         assert observed == known
 
     def test_q4(self):
         known = 90.0
-        observed = sgeop.geometry.angle_between_two_lines(self.line3, self.line4)
+        observed = neatnet.geometry.angle_between_two_lines(self.line3, self.line4)
         assert observed == known
 
     def test_indistinct(self):
@@ -109,7 +109,7 @@ class TestAngleBetween2Lines:
             UserWarning,
             match="Input lines are identical - must be distinct. Returning 0.0.",
         ):
-            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line1)
+            observed = neatnet.geometry.angle_between_two_lines(self.line1, self.line1)
         assert observed == known
 
     def test_not_adjacent(self):
@@ -117,7 +117,7 @@ class TestAngleBetween2Lines:
         with pytest.warns(
             UserWarning, match="Input lines do not share a vertex. Returning 0.0."
         ):
-            observed = sgeop.geometry.angle_between_two_lines(self.line1, self.line4)
+            observed = neatnet.geometry.angle_between_two_lines(self.line1, self.line4)
         assert observed == known
 
 
@@ -167,7 +167,7 @@ class TestVoronoiSkeleton:
 
         lines = lines_type(self.square)
         poly = pytest.polygonize(lines) if as_poly else None
-        observed_edges, observed_splits = sgeop.geometry.voronoi_skeleton(
+        observed_edges, observed_splits = neatnet.geometry.voronoi_skeleton(
             lines,
             poly=poly,
             buffer=buffer,
@@ -183,7 +183,7 @@ class TestVoronoiSkeleton:
 
         lines = lines_type(self.square)
         poly = pytest.polygonize(lines) if as_poly else None
-        observed_edges, observed_splits = sgeop.geometry.voronoi_skeleton(
+        observed_edges, observed_splits = neatnet.geometry.voronoi_skeleton(
             lines,
             poly=poly,
             buffer=buffer,
@@ -206,13 +206,13 @@ line_110_900 = shapely.LineString(((1000, 9000), (1100, 9000)))
 
 def test_remove_sliver():
     known = line_100_900
-    observed = sgeop.geometry._remove_sliver(lines_100_900_100_120)
+    observed = neatnet.geometry._remove_sliver(lines_100_900_100_120)
     assert observed == known
 
 
 def test_as_parts():
     known = numpy.array([line_100_900, line_100_120, line_110_900])
-    observed = sgeop.geometry._as_parts(
+    observed = neatnet.geometry._as_parts(
         numpy.array([lines_100_900_100_120, line_110_900])
     )
     numpy.testing.assert_array_equal(observed, known)
@@ -221,7 +221,7 @@ def test_as_parts():
 @pytest.mark.parametrize("tolerance", [0.1, 1, 10, 100, 1_000, 10_000, 100_000])
 def test_consolidate(tolerance):
     known = numpy.array([line_100_900, line_100_120, line_110_900])
-    observed = sgeop.geometry._consolidate(
+    observed = neatnet.geometry._consolidate(
         numpy.array([line_100_900, line_100_120, line_110_900]), tolerance
     )
     numpy.testing.assert_array_equal(observed, known)
@@ -257,8 +257,8 @@ def test_prep_components():
         index=pandas.Index([0, 1], name="component labels", dtype=numpy.int32),
     )
 
-    observed_labels, observed_counts, observed_comps = sgeop.geometry._prep_components(
-        [line1, line2, line3]
+    observed_labels, observed_counts, observed_comps = (
+        neatnet.geometry._prep_components([line1, line2, line3])
     )
 
     pandas.testing.assert_series_equal(observed_labels, known_labels)
@@ -273,7 +273,7 @@ def test_split_add():
     sl = shapely.LineString(((x1, y1), (x2, y2)))
     known_splits = [shapely.Point((x2, y2))]
     known_adds = [sl]
-    observed_splits, observed_adds = sgeop.geometry._split_add(sl, [], [])
+    observed_splits, observed_adds = neatnet.geometry._split_add(sl, [], [])
     assert observed_splits == known_splits
     assert observed_adds == known_adds
 
@@ -306,7 +306,7 @@ class TestSnapToTargets:
                 "lead outside of the artifact."
             ),
         ):
-            sgeop.geometry.snap_to_targets(
+            neatnet.geometry.snap_to_targets(
                 self.lines,
                 self.poly,
                 snap_to=self.snap_to_1,
@@ -324,7 +324,7 @@ class TestSnapToTargets:
             geopandas.GeoSeries(lines_b).polygonize().extract_unique_points().explode()
         )
 
-        observed = sgeop.geometry.snap_to_targets(
+        observed = neatnet.geometry.snap_to_targets(
             self.lines + lines_b,
             self.poly,
             snap_to=self.snap_to_1,

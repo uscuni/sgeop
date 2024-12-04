@@ -3,11 +3,11 @@ import pathlib
 import geopandas
 import pytest
 
-import sgeop
+import neatnet
 
 
 def test_get_artifacts_error():
-    path = pathlib.Path("sgeop", "tests", "data", "apalachicola_original.parquet")
+    path = pathlib.Path("neatnet", "tests", "data", "apalachicola_original.parquet")
     with pytest.raises(  # noqa: SIM117
         ValueError,
         match=(
@@ -22,4 +22,4 @@ def test_get_artifacts_error():
                 "Identification of face artifacts not possible."
             ),
         ):
-            sgeop.artifacts.get_artifacts(geopandas.read_parquet(path).iloc[:3])
+            neatnet.artifacts.get_artifacts(geopandas.read_parquet(path).iloc[:3])

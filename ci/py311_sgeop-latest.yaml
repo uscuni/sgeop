@@ -1,4 +1,4 @@
-name: py311_sgeop-latest
+name: py311_neatnet-latest
 channels:
   - conda-forge
 dependencies:

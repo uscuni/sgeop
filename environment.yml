@@ -1,4 +1,4 @@
-name: sgeop
+name: neatnet
 channels:
   - conda-forge
 dependencies:

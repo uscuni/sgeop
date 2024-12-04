@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 
 [project]
-name = "sgeop"
+name = "neatnet"
 dynamic = ["version"]
 authors = [
    { name = "Martin Fleischmann", email = "martin@martinfleischmann.net" },
@@ -39,7 +39,7 @@ dependencies = [
 
 [project.urls]
 Home = "https://github.com/uscuni/"
-Repository = "https://github.com/uscuni/sgeop"
+Repository = "https://github.com/uscuni/neatnet"
 
 [project.optional-dependencies]
 tests = [
@@ -53,7 +53,7 @@ tests = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["sgeop", "sgeop.*"]
+include = ["neatnet", "neatnet.*"]
 
 [tool.ruff]
 line-length = 88
@@ -67,7 +67,7 @@ lint.select = ["E", "F", "W", "I", "UP", "N", "B", "A", "C4", "SIM", "ARG"]
  ]
 
 [tool.coverage.run]
-source = ["./sgeop"]
+source = ["./neatnet"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -78,10 +78,10 @@ exclude_lines = [
     "except ImportError",
 ]
 ignore_errors = true
-omit = ["sgeop/tests/*"]
+omit = ["neatnet/tests/*"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    # this is an internal warning thrown within ``sgeop.geometry.snap_to_targets()``
+    # this is an internal warning thrown within ``neatnet.geometry.snap_to_targets()``
     'ignore:Could not create a connection*:UserWarning',
 ]

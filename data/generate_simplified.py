@@ -4,7 +4,7 @@ import time
 
 import geopandas
 
-import sgeop
+import neatnet
 
 start_time = time.time()
 
@@ -39,7 +39,6 @@ fua_city = {
 city_fua = {c: f for f, c in fua_city.items()}
 
 for city, fua in city_fua.items():
-
     t1 = time.time()
     aoi = f"{city}_{fua}"
 
@@ -57,7 +56,7 @@ for city, fua in city_fua.items():
     original = geopandas.read_parquet(pathlib.Path(aoi, "original.parquet"))
 
     # output data
-    simplified = sgeop.simplify_network(original)
+    simplified = neatnet.simplify_network(original)
     simplified.to_parquet(pathlib.Path(aoi, "simplified.parquet"))
 
     t2 = round((time.time() - t1) / 60.0, 2)

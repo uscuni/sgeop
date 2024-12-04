@@ -1,4 +1,4 @@
-name: py313_sgeop-dev
+name: py313_neatnet-dev
 channels:
   - conda-forge
 dependencies:
