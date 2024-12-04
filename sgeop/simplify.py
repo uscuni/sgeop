@@ -413,9 +413,7 @@ def simplify_pairs(
         _1st = pd.DataFrame()
         _2nd = pd.DataFrame()
         for_skeleton = pd.DataFrame()
-        roads_cleaned = roads[
-            ["coins_group", "coins_end", "_status", roads.geometry.name]
-        ]
+        roads_cleaned = roads
 
     # Generate counts of COINs groups for edges
     coins_count = (
