@@ -268,7 +268,8 @@ def simplify_singletons(
         new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
         agg = {"_status": _status}
         for c in cleaned_roads.columns.drop(cleaned_roads.active_geometry_name):
-            agg[c] = "first"
+            if c != "_status":
+                agg[c] = "first"
         non_empties = new_roads[~(new_roads.is_empty | new_roads.geometry.isna())]
         new_roads = remove_false_nodes(non_empties, aggfunc=agg)
 
@@ -373,7 +374,8 @@ def simplify_pairs(
         for c in roads.columns.drop(
             [roads.active_geometry_name, "coins_count"], errors="ignore"
         ):
-            agg[c] = "first"
+            if c not in agg:
+                agg[c] = "first"
 
         sol_drop = "solution == 'drop_interline'"
         sol_iter = "solution == 'iterate'"
@@ -551,7 +553,8 @@ def simplify_clusters(
     new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
     agg = {"_status": _status}
     for c in new_roads.columns.drop(new_roads.active_geometry_name):
-        agg[c] = "first"
+        if c != "_status":
+            agg[c] = "first"
     new_roads = remove_false_nodes(
         new_roads[~new_roads.is_empty], aggfunc=agg
     ).drop_duplicates("geometry")

@@ -520,7 +520,8 @@ def consolidate_nodes(
 
     agg = {"_status": _status}
     for c in gdf.columns.drop(gdf.active_geometry_name):
-        agg[c] = "first"
+        if c != "_status":
+            agg[c] = "first"
     return remove_false_nodes(
         gdf[~gdf.geometry.is_empty].explode(),
         # NOTE: this aggfunc needs to be able to process all the columns
