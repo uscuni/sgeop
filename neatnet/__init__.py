@@ -13,4 +13,4 @@ from .nodes import (
 from .simplify import simplify_loop, simplify_network
 
 with contextlib.suppress(PackageNotFoundError):
-    __version__ = version("sgeop")
+    __version__ = version("neatnet")

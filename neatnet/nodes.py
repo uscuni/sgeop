@@ -119,7 +119,8 @@ def get_components(
 
     Notes
     -----
-    See [https://github.com/uscuni/sgeop/issues/56] for detailed explanation of output.
+    See [https://github.com/uscuni/neatnet/issues/56] for detailed explanation of
+    output.
     """
     edgelines = np.array(edgelines)
     start_points = shapely.get_point(edgelines, 0)

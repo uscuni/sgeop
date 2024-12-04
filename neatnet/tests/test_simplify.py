@@ -6,9 +6,9 @@ import pytest
 import shapely
 from pandas.testing import assert_series_equal
 
-import sgeop
+import neatnet
 
-test_data = pathlib.Path("sgeop", "tests", "data")
+test_data = pathlib.Path("neatnet", "tests", "data")
 full_fua_data = pathlib.Path("data")
 
 ci_artifacts = pathlib.Path("ci_artifacts")
@@ -53,7 +53,7 @@ def test_simplify_network_small(scenario, tol, known_length):
     else:
         exclusion_mask = None
 
-    observed = sgeop.simplify_network(original, exclusion_mask=exclusion_mask)
+    observed = neatnet.simplify_network(original, exclusion_mask=exclusion_mask)
     observed_length = observed.geometry.length.sum()
 
     # storing GH artifacts
@@ -83,7 +83,7 @@ def test_simplify_network_small(scenario, tol, known_length):
 )
 def test_simplify_network_full_fua(aoi, tol, known_length):
     known = geopandas.read_parquet(full_fua_data / aoi / "simplified.parquet")
-    observed = sgeop.simplify_network(
+    observed = neatnet.simplify_network(
         geopandas.read_parquet(full_fua_data / aoi / "original.parquet")
     )
     observed_length = observed.geometry.length.sum()
