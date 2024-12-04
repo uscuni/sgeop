@@ -1,4 +1,5 @@
 import logging
+import typing
 import warnings
 
 import geopandas as gpd
@@ -74,7 +75,7 @@ def get_artifacts(
         May also be the returned value of ``threshold`` or ``threshold_fallback``.
     """
 
-    def _relate(neighs: tuple, cond: callable) -> bool:
+    def _relate(neighs: tuple, cond: typing.Callable) -> bool:
         """Helper for relating artifacts."""
         return len(neighs) > 0 and cond(polys.loc[list(neighs), "is_artifact"])
 
@@ -196,7 +197,7 @@ def ccss_special_case(
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         New linestrings for reconnections.
     """
 
@@ -253,7 +254,7 @@ def ccss_special_case(
         shapely.shortest_line(missing.geometry, combined_linework).tolist()
     )
 
-    return new_connections
+    return np.array(new_connections)
 
 
 def filter_connections(
@@ -261,7 +262,7 @@ def filter_connections(
     relevant_targets: gpd.GeoDataFrame,
     conts_groups: gpd.GeoDataFrame,
     new_connections: np.ndarray,
-) -> tuple[np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """The skeleton returns connections to all the nodes. We need to keep only
     some, if there are multiple connections to a single C. We don't touch the other.
 
@@ -278,7 +279,7 @@ def filter_connections(
 
     Returns
     -------
-    tuple[np.ndarray]
+    tuple[np.ndarray, np.ndarray, np.ndarray]
         - Updated ``new_connections``
         - Connections intersecting ``C``
         - Connections intersecting ``primes``
@@ -625,7 +626,7 @@ def one_remaining_c(
     split_points: list,
     clip_limit: float | int,
     consolidation_tolerance: float | int = 10,
-) -> list:
+) -> np.ndarray:
     """Resolve situations where there is 1 highest hierarchy and 1 remaining node.
     This function is called within ``artifacts.nx_gx()``:
         * first SUBRANCH of BRANCH 3:
@@ -661,7 +662,7 @@ def one_remaining_c(
 
     Returns
     -------
-    geopandas.GeoDataFrame
+    numpy.ndarray
         Newly resolved edges. The ``split_points`` parameter is also updated inplace.
     """
 
@@ -754,7 +755,7 @@ def loop(
         logger.debug("SNAP TO primes")
         snap_to = primes
 
-    possible_dangle, splitters = voronoi_skeleton(
+    _possible_dangle, splitters = voronoi_skeleton(
         segments,  # use edges that are being dropped
         poly=artifact.geometry,
         snap_to=snap_to,
@@ -765,7 +766,7 @@ def loop(
     split_points.extend(splitters)
 
     possible_dangle = gpd.GeoDataFrame(
-        geometry=possible_dangle[shapely.disjoint(possible_dangle, dropped)]
+        geometry=_possible_dangle[shapely.disjoint(_possible_dangle, dropped)]
     )
     if not possible_dangle.empty:
         comps = graph.Graph.build_contiguity(
@@ -1458,11 +1459,11 @@ def nx_gx_cluster(
     # if we used only segments, we need to remove dangles
     if len(connection) == 1:
         connection = connection.item()
-        skel = gpd.GeoSeries(skel)
-        skel = skel[
-            skel.disjoint(edges_on_boundary.union_all()) | skel.intersects(connection)
+        _skel = gpd.GeoSeries(skel)
+        _skel = _skel[
+            _skel.disjoint(edges_on_boundary.union_all()) | _skel.intersects(connection)
         ]
-        welded = gpd.GeoSeries(weld_edges(skel))
+        welded = gpd.GeoSeries(weld_edges(_skel))
         skel = welded[
             ~(
                 ((welded.length < min_dangle_length) & (is_dangle(welded)))
