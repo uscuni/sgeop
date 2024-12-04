@@ -1,3 +1,5 @@
+import typing
+
 import geopandas as gpd
 import momepy
 import networkx as nx
@@ -520,7 +522,7 @@ def consolidate_nodes(
         geoms = np.hstack(spiders)
         gdf = pd.concat([gdf, gpd.GeoDataFrame(geometry=geoms, crs=geom.crs)])
 
-    agg = {"_status": _status}
+    agg: dict[str, str | typing.Callable] = {"_status": _status}
     for c in gdf.columns.drop(gdf.active_geometry_name):
         if c != "_status":
             agg[c] = "first"

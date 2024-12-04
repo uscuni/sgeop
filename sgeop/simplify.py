@@ -1,4 +1,5 @@
 import logging
+import typing
 import warnings
 
 import geopandas as gpd
@@ -267,7 +268,7 @@ def simplify_singletons(
         new["_status"] = "new"
         new.geometry = new.simplify(max_segment_length * simplification_factor)
         new_roads = pd.concat([cleaned_roads, new], ignore_index=True)
-        agg = {"_status": _status}
+        agg: dict[str, str | typing.Callable] = {"_status": _status}
         for c in cleaned_roads.columns.drop(cleaned_roads.active_geometry_name):
             if c != "_status":
                 agg[c] = "first"
@@ -550,7 +551,7 @@ def simplify_clusters(
         max_segment_length * simplification_factor
     )
     new_roads = pd.concat([cleaned_roads, new], ignore_index=True).explode()
-    agg = {"_status": _status}
+    agg: dict[str, str | typing.Callable] = {"_status": _status}
     for c in new_roads.columns.drop(new_roads.active_geometry_name):
         if c != "_status":
             agg[c] = "first"
