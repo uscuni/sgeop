@@ -133,7 +133,7 @@ def pytest_configure(config):  # noqa: ARG001
     """PyTest session attributes, methods, etc."""
 
     valid_env_types = ["oldest", "latest", "dev"]
-    pytest.env_type = config.getoption("env_type").split("-")[-1]
+    pytest.env_type = config.getoption("env_type").split("_")[-1]
     assert pytest.env_type in valid_env_types
 
     pytest.ubuntu = "ubuntu" in platform.version().lower()
