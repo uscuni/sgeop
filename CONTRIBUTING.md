@@ -106,7 +106,7 @@ When submitting a pull request:
 1. *After* opening an issue and discussing with the development team, create a PR with the proposed changes.
 2. If [testing fails](https://github.com/uscuni/neatnet/actions/runs/11368511561) due to an update in the code base:
 3. Observed data is [saved as artifacts](https://github.com/uscuni/neatnet/actions/runs/11368511561#artifacts) from the workflow and can be download locally.
-4. We determine the `ci_artifacts-ubuntu-latest-py312_neatnet-latest` data as the "truth."
+4. We determine the `ci_artifacts-ubuntu-latest-py313_latest` data as the "truth."
 5. After comparison of the current "known" data with new data from (3.), if new data is "truthier," update your PR with the new "known" data.
 
 #### Handling Edge Cases in Testing
