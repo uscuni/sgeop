@@ -1,3 +1,5 @@
+import typing
+
 import geopandas as gpd
 import momepy
 import networkx as nx
@@ -35,17 +37,21 @@ def split(
     split_points = gpd.GeoSeries(split_points, crs=crs)
     for split in split_points.drop_duplicates():
         _, ix = cleaned_roads.sindex.nearest(split, max_distance=eps)
-        edge = cleaned_roads.geometry.iloc[ix]
+        row = cleaned_roads.iloc[ix]
+        edge = row.geometry
         if edge.shape[0] == 1:
+            row = row.iloc[0]
             lines_split = _snap_n_split(edge.item(), split, eps)
             if lines_split.shape[0] > 1:
                 gdf_split = gpd.GeoDataFrame(geometry=lines_split, crs=crs)
+                for c in row.index.drop(["geometry", "_status"], errors="ignore"):
+                    gdf_split[c] = row[c]
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [cleaned_roads.drop(edge.index[0]), gdf_split],
                     ignore_index=True,
                 )
-        else:
+        elif edge.shape[0] > 1:
             to_be_dropped = []
             to_be_added = []
             for i, e in edge.items():
@@ -55,13 +61,25 @@ def split(
                     to_be_added.append(lines_split)
 
             if to_be_added:
-                gdf_split = gpd.GeoDataFrame(
-                    geometry=np.concatenate(to_be_added), crs=crs
+                gdf_split = pd.DataFrame(
+                    {"geometry": to_be_added, "_orig": to_be_dropped}
+                ).explode("geometry")
+                gdf_split = pd.concat(
+                    [
+                        gdf_split.drop(columns="_orig").reset_index(drop=True),
+                        row.drop(columns="geometry")
+                        .loc[gdf_split["_orig"]]
+                        .reset_index(drop=True),
+                    ],
+                    axis=1,
                 )
                 gdf_split["_status"] = "changed"
                 cleaned_roads = pd.concat(
                     [cleaned_roads.drop(to_be_dropped), gdf_split],
                     ignore_index=True,
+                )
+                cleaned_roads = gpd.GeoDataFrame(
+                    cleaned_roads, geometry="geometry", crs=crs
                 )
 
     return cleaned_roads.reset_index(drop=True)
@@ -485,7 +503,7 @@ def consolidate_nodes(
             # TODO: It is temporarily fixed by that explode in return
             geom.iloc[inds] = geom.iloc[inds].difference(cookie)
 
-            status.iloc[inds] = "snapped"
+            status.iloc[inds] = "changed"
             midpoint = np.mean(shapely.get_coordinates(cluster), axis=0)
             midpoints.append(midpoint)
             mids = np.array([midpoint] * len(pts))
@@ -504,7 +522,12 @@ def consolidate_nodes(
         geoms = np.hstack(spiders)
         gdf = pd.concat([gdf, gpd.GeoDataFrame(geometry=geoms, crs=geom.crs)])
 
+    agg: dict[str, str | typing.Callable] = {"_status": _status}
+    for c in gdf.columns.drop(gdf.active_geometry_name):
+        if c != "_status":
+            agg[c] = "first"
     return remove_false_nodes(
         gdf[~gdf.geometry.is_empty].explode(),
-        aggfunc={"_status": _status},
+        # NOTE: this aggfunc needs to be able to process all the columns
+        aggfunc=agg,
     )
