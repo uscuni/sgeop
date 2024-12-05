@@ -757,7 +757,7 @@ def simplify_network(
         This is the third threshold for detecting circle-like artifacts whose
         Face Artifact Index (see :cite:`fleischmann2023`)
         is above the value passed in ``artifact_threshold``.
-        If a polygon has a sufficienly small area
+        If a polygon has a sufficiently small area
         (see also ``area_threshold_circles``), *and* the polygon is touched
         by at least one polygon already classified as artifact,
         *and* its isoperimetric quotient (see ``esda.shape.isoperimetric_quotient``)
