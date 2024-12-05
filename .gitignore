@@ -165,3 +165,6 @@ cache/
 
 # macOS stuff
 *.DS_Store
+# pixi environments
+.pixi
+*.egg-info
