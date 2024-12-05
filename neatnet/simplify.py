@@ -713,54 +713,63 @@ def simplify_network(
     artifact_threshold_fallback : None | float | int = None
         If artifact threshold detection fails, this value is used as a fallback.
     area_threshold_blocks : float | int = 1e5
-        This is the first threshold for determining whether block-like polygons
-        are artifacts or not. If a polygon is block-like (rectangular) and has an
-        area lower than the input threshold, it *may* be considered as an artifact,
-        but geometric conditions and other metrics must be met. See also
-        ``isoareal_threshold_blocks``.
+        This is the first threshold for detecting block-like artifacts whose
+        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
+        passed in ``artifact_threshold``.
+        If a polygon has an area below ``area_threshold_blocks``, *and*
+        is of elongated shape (see also ``isoareal_threshold_blocks``),
+        *and* touches at least one polygon that has already been classified as artifact,
+        then it will be classified as an artifact.
     isoareal_threshold_blocks : float | int = 0.5
-        This is the second threshold for determining whether block-like polygons
-        are artifacts. If a polygon is block-like but is not *too* rectangular it
-        *may* be considered as an artifact, but geometric conditions and other metrics
-        must be met. In terms of the threshold value, polygons are detected as
-        artifacts if their Face Artifact Index (see :cite:`fleischmann2023`)
-        value is below the passed in value. See also ``area_threshold_blocks``
-        and ``esda.shape.isoareal_quotient``.
+        This is the second threshold for detecting block-like artifacts whose
+        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
+        passed in ``artifact_threshold``. If a polygon has an isoareal quotient
+        below ``isoareal_threshold_blocks`` (see ``esda.shape.isoareal_quotient``),
+        i.e., if it has an elongated shape; *and* it has a sufficiently small area
+        (see also ``area_threshold_blocks``), *and* if it touches at least one
+         polygon that has already been detected as an artifact,
+        then it will be classified as an artifact.
     area_threshold_circles : float | int = 5e4
-        This is the first threshold for determining whether circle-like polygons
-        are artifacts or not. If a polygon is circle-like and has an
-        area lower than the input threshold, it *may* be considered as an artifact,
-        but geometric conditions and other metrics must be met. See also
-        ``isoareal_threshold_circles_enclosed`` and
-        ``isoperimetric_threshold_circles_touching``.
+        This is the first threshold for detecting circle-like artifacts whose
+        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
+        passed in ``artifact_threshold``. If a polygon has an area below
+        ``area_threshold_circles``, *and* one of the following 2 cases is given:
+        (a) the polygon is touched, but not enclosed by polygons already classified
+        as artifacts, *and* with an isoperimetric quotient
+        (see ``esda.shape.isoperimetric_quotient``)
+        above ``isoperimetric_threshold_circles_touching``, i.e., if its shape
+        is close to circular; or (b) the polygon is fully enclosed by polygons
+        already classified as artifacts, *and* with an isoareal quotient
+        (see ``esda.shape.isoareal_quotient``) above
+        ``isoareal_threshold_circles_enclosed``, i.e., if its shape is
+        close to circular; then it will be classified as an artifact.
     isoareal_threshold_circles_enclosed : float | int = 0.75
-        This is the second threshold for determining whether circle-like polygons
-        are artifacts. If a polygon is relatively small and circular it *may* be
-        considered as an artifact, but geometric conditions and other metrics
-        must be met. This threshold is measured specifically against focal polygons
-        that are entirely enclosed by other artifacts. In terms of the threshold value,
-        polygons are detected as artifacts if their Face Artifact Index (see
-        :cite:`fleischmann2023`) value is above the passed in value. See also
-        ``area_threshold_circles``, ``isoperimetric_threshold_circles_touching``,
-        and ``esda.shape.isoareal_quotient``.
+        This is the second threshold for detecting circle-like artifacts whose
+        Face Artifact Index (see :cite:`fleischmann2023`) is above the value
+        passed in ``artifact_threshold``. If a polygon has a sufficienly small
+        area (see also ``area_threshold_circles``), *and* the polygon is
+        fully enclosed by polygons already classified as artifacts,
+        *and* its isoareal quotient (see ``esda.shape.isoareal_quotient``)
+        is above the value passed to ``isoareal_threshold_circles_enclosed``,
+        i.e., if its shape is close to circular;
+        then it will be classified as an artifact.
     isoperimetric_threshold_circles_touching : float | int = 0.9
-        This is the third threshold for determining whether circle-like polygons
-        are artifacts. If a polygon is relatively small and circular it *may* be
-        considered as an artifact, but geometric conditions and other metrics
-        must be met. This threshold is measured specifically against focal polygons
-        that are touching other artifacts (sharing a border, rook contiguity). In
-        terms of the threshold value, polygons are detected as artifacts if their
-        Face Artifact Index (see  :cite:`fleischmann2023`) value is above the passed
-        in value. See also ``area_threshold_circles``,
-        ``isoareal_threshold_circles_enclosed``, and
-        ``esda.shape.isoperimetric_quotient``.
+        This is the third threshold for detecting circle-like artifacts whose
+        Face Artifact Index (see :cite:`fleischmann2023`)
+        is above the value passed in ``artifact_threshold``.
+        If a polygon has a sufficienly small area
+        (see also ``area_threshold_circles``), *and* the polygon is touched
+        by at least one polygon already classified as artifact,
+        *and* its isoperimetric quotient (see ``esda.shape.isoperimetric_quotient``)
+        is above the value passed to ``isoperimetric_threshold_circles_touching``,
+        i.e., if its shape is close to circular;
+        then it will be classified as an artifact.
     eps : float = 1e-4
         Tolerance epsilon used in multiple internal geometric operations.
     exclusion_mask : None | geopandas.GeoSeries = None
         Polygons used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
-
     Returns
     -------
     geopandas.GeoDataFrame
