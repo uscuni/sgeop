@@ -740,7 +740,7 @@ def simplify_network(
         above ``isoperimetric_threshold_circles_touching``, i.e., if its shape
         is close to circular; or (b) the polygon is fully enclosed by polygons
         already classified as artifacts, *and* with an isoareal quotient
-        (see ``esda.shape.isoareal_quotient``) above
+        above
         ``isoareal_threshold_circles_enclosed``, i.e., if its shape is
         close to circular; then it will be classified as an artifact.
     isoareal_threshold_circles_enclosed : float | int = 0.75
