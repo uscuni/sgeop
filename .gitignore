@@ -168,3 +168,5 @@ cache/
 # pixi environments
 .pixi
 *.egg-info
+
+ci_artifacts/
