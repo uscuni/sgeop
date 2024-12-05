@@ -49,17 +49,17 @@ def get_artifacts(
         ``artifact_threshold_fallback`` keyword argument in
         ``simplify.simplify_network()``.
     area_threshold_blocks : float | int = 1e5
-        Areal theshold for block detection.
+        Areal threshold for block detection.
     isoareal_threshold_blocks : float | int = 0.5
-        Isoareal theshold for block detection.
+        Isoareal threshold for block detection.
         See ``esda.shape.isoareal_quotient``.
     area_threshold_circles : float | int = 5e4
-        Areal theshold for circle detection.
+        Areal threshold for circle detection.
     isoareal_threshold_circles_enclosed : float | int = 0.75
-        Isoareal theshold for enclosed circle detection.
+        Isoareal threshold for enclosed circle detection.
         See ``esda.shape.isoareal_quotient``.
     isoperimetric_threshold_circles_touching : float | int = 0.9
-        Isoperimetric theshold for enclosed circle touching.
+        Isoperimetric threshold for touching circle detection.
         See ``esda.shape.isoperimetric_quotient``.
     exclusion_mask : None | gpd.GeoSeries = None
         Polygons used to determine face artifacts to exclude from returned output.
