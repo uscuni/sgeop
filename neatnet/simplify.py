@@ -746,7 +746,7 @@ def simplify_network(
     isoareal_threshold_circles_enclosed : float | int = 0.75
         This is the second threshold for detecting circle-like artifacts whose
         Face Artifact Index (see :cite:`fleischmann2023`) is above the value
-        passed in ``artifact_threshold``. If a polygon has a sufficienly small
+        passed in ``artifact_threshold``. If a polygon has a sufficiently small
         area (see also ``area_threshold_circles``), *and* the polygon is
         fully enclosed by polygons already classified as artifacts,
         *and* its isoareal quotient (see ``esda.shape.isoareal_quotient``)
