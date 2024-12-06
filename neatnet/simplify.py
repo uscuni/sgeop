@@ -670,9 +670,10 @@ def simplify_network(
     exclusion_mask: None | gpd.GeoSeries = None,
     predicate: str = "intersects",
 ) -> gpd.GeoDataFrame:
-    """Top-level workflow for simplifying networks. The input raw road network data is
-    first preprocessed (topological corrections & node consolidation) before two
-    iterations of artifact detection and simplification.
+    """Top-level workflow for simplifying networks. The input raw road network data,
+    which must be in a projected coordinate reference system and is expected to be in
+    meters, is first preprocessed (topological corrections & node consolidation) before
+    two iterations of artifact detection and simplification.
 
     Each iteration of the simplification procedure which includes (1.) the removal
     of false nodes; (2.) face artifact classification; and (3.) the line-based
@@ -685,7 +686,8 @@ def simplify_network(
     Parameters
     ----------
     roads : geopandas.GeoDataFrame
-        Raw road network data.
+        Raw road network data. This input *must* be in a projected coordinate reference
+        system and *should* be in meters. All defaults arguments assume meters.
     max_segment_length : float | int = 1
         Additional vertices will be added so that all line segments
         are no longer than this value. Must be greater than 0.
@@ -770,10 +772,17 @@ def simplify_network(
         Polygons used to determine face artifacts to exclude from returned output.
     predicate : str = 'intersects'
         The spatial predicate used to exclude face artifacts from returned output.
+
     Returns
     -------
     geopandas.GeoDataFrame
         The final, simplified road network line data.
+
+    Notes
+    -----
+    As is noted above, the input network data must be in a projected coordinate
+    reference system and is expected to be in meters. However, it may be possible to
+    work with network data projected in feet if all default arguments are adjusted.
     """
 
     ################################################################################
