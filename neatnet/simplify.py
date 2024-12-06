@@ -783,7 +783,6 @@ def simplify_network(
     As is noted above, the input network data must be in a projected coordinate
     reference system and is expected to be in meters. However, it may be possible to
     work with network data projected in feet if all default arguments are adjusted.
-    We discourage the approach.
     """
 
     # NOTE: this keeps attributes but resets index
