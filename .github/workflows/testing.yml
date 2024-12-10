@@ -91,7 +91,7 @@
            --cov-report xml . \
            --env_type ${{ matrix.environment-file }}
            -m wuhan
-         if: ${{ github.event_name == 'push' }} || ${{ github.event_name == 'schedule' }} || ${{ github.event_name == 'workflow_dispatch' }}
+         if: ${{ github.event_name != 'pull_request' }}
 
        - name: zip artifacts - Ubuntu & macOS
          run: zip ci_artifacts.zip ci_artifacts -r
