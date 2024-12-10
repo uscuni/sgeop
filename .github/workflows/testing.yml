@@ -74,7 +74,7 @@
            --cov-append \
            --cov-report term-missing \
            --cov-report xml . \
-           --env_type ${{ matrix.environment-file }}
+           --env_type ${{ matrix.environment-file }} \
            -m "not wuhan"
 
        - name: run tests (Wuhan)
@@ -89,7 +89,7 @@
            --cov-append \
            --cov-report term-missing \
            --cov-report xml . \
-           --env_type ${{ matrix.environment-file }}
+           --env_type ${{ matrix.environment-file }} \
            -m wuhan
          if: ${{ github.event_name != 'pull_request' }}
 
